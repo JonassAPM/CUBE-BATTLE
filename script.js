@@ -632,9 +632,8 @@ class CubeBattleGame {
 
     moveWithGyroscope() {
         if (!this.isCalibrated) return;
-        let diffGamma = this.getShortestAngleDiff(this.gyroGamma, this.calibratedGamma); 
-        let diffBeta = this.getShortestAngleDiff(this.gyroBeta, this.calibratedBeta);
-
+        let diffGamma = this.getShortestAngleDiff(this.gyroBeta, this.calibratedBeta);
+        let diffBeta = this.getShortestAngleDiff(this.gyroGamma, this.calibratedGamma); 
         this.velocity.x = 0;
         this.velocity.y = 0;
 
