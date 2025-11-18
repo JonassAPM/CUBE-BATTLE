@@ -116,7 +116,7 @@ class CubeBattleGame {
         this.lastGyroUpdate = 0;
         this.gyroUpdateRate = 16;
         this.angularVelocity = { x: 0, y: 0 };
-        this.motionSensitivity = 0.1;
+        this.motionSensitivity = 0.05;
         this.lastUpdateTime = Date.now();
         
         this.calibratedGamma = 0;
@@ -599,7 +599,7 @@ class CubeBattleGame {
         const rateY = this.angularVelocity.y;
         const scaleFactor = 150; 
         
-        let displacementX = rateX * this.motionSensitivity * deltaTime * scaleFactor;
+        let displacementX = (-rateX * this.motionSensitivity * deltaTime * scaleFactor);
         let displacementY = (-rateY * this.motionSensitivity * deltaTime * scaleFactor); 
 
         const maxDisplacementPerFrame = 6; 
