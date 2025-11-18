@@ -116,7 +116,7 @@ class CubeBattleGame {
         this.lastGyroUpdate = 0;
         this.gyroUpdateRate = 16;
         this.angularVelocity = { x: 0, y: 0 };
-        this.motionSensitivity = 0.5;
+        this.motionSensitivity = 0.1;
         this.lastUpdateTime = Date.now();
         
         this.calibratedGamma = 0;
@@ -592,28 +592,29 @@ class CubeBattleGame {
         if (!this.gyroEnabled) return;
         
         const currentTime = Date.now();
-        const deltaTime = (currentTime - this.lastUpdateTime) / 1000;
-
+        const deltaTime = (currentTime - this.lastUpdateTime) / 1000; 
         this.lastUpdateTime = currentTime;
-
+        
         const rateX = this.angularVelocity.x;
         const rateY = this.angularVelocity.y;
+        const scaleFactor = 150; 
+        
+        let displacementX = rateX * this.motionSensitivity * deltaTime * scaleFactor;
+        let displacementY = (-rateY * this.motionSensitivity * deltaTime * scaleFactor); 
 
-        this.velocity.x = rateX * this.motionSensitivity * deltaTime * 200;
-        this.tilt = rateX > 2 ? 3 : (rateX < -2 ? -3 : 0);
-        this.velocity.y = (-rateY * this.motionSensitivity * deltaTime * 200);
+        const maxDisplacementPerFrame = 6; 
 
+        this.velocity.x = Math.max(-maxDisplacementPerFrame, Math.min(maxDisplacementPerFrame, displacementX));
+        this.velocity.y = Math.max(-maxDisplacementPerFrame, Math.min(maxDisplacementPerFrame, displacementY));
+        this.tilt = rateX > 2 ? 3 : (rateX < -2 ? -3 : 0); 
+        
         const newX = this.position.x + this.velocity.x;
         const newY = this.position.y + this.velocity.y;
         
-        const maxSpeed = 15;
-        this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
-        this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
-        
         this.position.x = Math.max(0, Math.min(newX, window.innerWidth - this.cubeSize));
         this.position.y = Math.max(0, Math.min(newY, window.innerHeight - this.cubeSize));
-
-        console.log(`RateX (Gamma): ${rateX.toFixed(1)}°, RateY (Beta): ${rateY.toFixed(1)}°, VelX: ${this.velocity.x.toFixed(1)}, VelY: ${this.velocity.y.toFixed(1)}`);
+        
+        console.log(`RateX: ${rateX.toFixed(1)}°, RateY: ${rateY.toFixed(1)}°, VelX: ${this.velocity.x.toFixed(1)}, VelY: ${this.velocity.y.toFixed(1)}`);
     }
     
     rechargeAmmo() {
