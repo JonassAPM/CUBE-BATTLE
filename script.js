@@ -604,8 +604,8 @@ class CubeBattleGame {
 
     moveWithGyroscope() {
         if (!this.isCalibrated) return;
-        const adjustedGamma = this.gyroGamma - this.calibratedGamma;
-        const adjustedBeta = this.gyroBeta - this.calibratedBeta;
+        const adjustedGamma = this.gyroBeta - this.calibratedBeta;
+        const adjustedBeta = this.gyroGamma - this.calibratedGamma;
 
         this.velocity.x = 0;
         this.velocity.y = 0;
