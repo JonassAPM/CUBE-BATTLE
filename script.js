@@ -183,12 +183,10 @@ class CubeBattleGame {
         document.addEventListener('keyup', (e) => this.handleKeyUp(e));
         window.addEventListener('resize', () => this.handleResize());
         
-        // Inicializar controles táctiles
         if (this.isTouchDevice) {
             this.initTouchControls();
         }
         
-        // Inicializar giroscopio
         this.initGyroscope();
         
         this.gameLoop();
@@ -196,88 +194,110 @@ class CubeBattleGame {
     }
     
     initTouchControls() {
-        // Disparo táctil en toda la pantalla (excepto HUD)
-        this.gameContainer.addEventListener('touchstart', (e) => {
+        const touchTarget = this.gameContainer; 
+        let chargeStartedOnTouch = false;
+        let touchID = null;
+
+        const handleTouchStart = (e) => {
             e.preventDefault();
-            this.touchStartTime = Date.now();
-            this.isTouchCharging = true;
-            this.lastTouchTime = Date.now();
-            
-            // Verificar que no se toque el HUD
-            const touchY = e.touches[0].clientY;
-            const hudHeight = 80; // Altura aproximada del HUD
-            if (touchY < window.innerHeight - hudHeight && this.currentAmmo > 0 && !this.isCharging) {
-                this.startCharging();
-            }
-            
-            // Disparo rápido si se toca brevemente
-            this.touchTimeout = setTimeout(() => {
-                if (this.isTouchCharging && this.chargeLevel < 10) {
-                    this.shootCharged();
-                }
-            }, 150);
-        });
-        
-        this.gameContainer.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.isTouchCharging = false;
-            
+
+            if (e.touches.length > 1 || touchID !== null) return;
+
+            touchID = e.touches[0].identifier;
+
             if (this.touchTimeout) {
                 clearTimeout(this.touchTimeout);
+                this.touchTimeout = null;
             }
-            
-            if (this.isCharging) {
-                this.shootCharged();
-            }
-        });
-        
-        this.gameContainer.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-        });
-        
-        // También mantener el botón de disparo como alternativa
-        if (this.shootArea) {
-            this.shootArea.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+
+            const touchY = e.touches[0].clientY;
+            const hudHeight = 80;
+
+            if (touchY < window.innerHeight - hudHeight && this.currentAmmo > 0 && !this.isCharging) {
+                this.startCharging();
+                chargeStartedOnTouch = true;
                 this.touchStartTime = Date.now();
                 this.isTouchCharging = true;
+
+                this.touchTimeout = setTimeout(() => {
+                    this.touchTimeout = null;
+                }, 150);
+            } else {
+                chargeStartedOnTouch = false;
+            }
+        };
+
+        const handleTouchEnd = (e) => {
+            e.preventDefault();
+
+            let isChargeEnding = false;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === touchID) {
+                    isChargeEnding = true;
+                    break;
+                }
+            }
+
+            if (!isChargeEnding) return;
+
+            this.isTouchCharging = false;
+            touchID = null;
+
+            if (this.touchTimeout) {
+                clearTimeout(this.touchTimeout);
+                this.touchTimeout = null;
                 
+                if (this.isCharging && chargeStartedOnTouch) {
+                    this.shootCharged(); 
+                }
+            } else if (this.isCharging && chargeStartedOnTouch) {
+                this.shootCharged();
+            }
+            
+            chargeStartedOnTouch = false;
+        };
+
+        touchTarget.addEventListener('touchstart', handleTouchStart);
+        touchTarget.addEventListener('touchend', handleTouchEnd);
+        touchTarget.addEventListener('touchcancel', handleTouchEnd);
+        touchTarget.addEventListener('touchmove', (e) => e.preventDefault());
+
+        if (this.shootArea) {
+            this.shootArea.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
                 if (this.currentAmmo > 0 && !this.isCharging) {
                     this.startCharging();
+                    this.touchStartTime = Date.now();
+                    this.isTouchCharging = true;
                 }
             });
-            
+
             this.shootArea.addEventListener('touchend', (e) => {
-                e.preventDefault();
                 e.stopPropagation();
                 this.isTouchCharging = false;
-                
+
                 if (this.isCharging) {
                     this.shootCharged();
                 }
             });
         }
     }
-    
+
     initGyroscope() {
         if (window.DeviceOrientationEvent) {
             window.addEventListener('deviceorientation', (e) => {
                 const currentTime = Date.now();
                 
-                // Limitar la tasa de actualización para mejor rendimiento
                 if (currentTime - this.lastGyroUpdate < this.gyroUpdateRate) {
                     return;
                 }
                 
                 this.lastGyroUpdate = currentTime;
                 
-                // Obtener valores del giroscopio
-                this.gyroAlpha = e.alpha || 0; // Rotación Z (0-360)
-                this.gyroBeta = e.beta || 0;   // Inclinación X (-180 to 180)
-                this.gyroGamma = e.gamma || 0; // Inclinación Y (-90 to 90)
+                this.gyroAlpha = e.alpha || 0;
+                this.gyroBeta = e.beta || 0;
+                this.gyroGamma = e.gamma || 0;
                 
-                // Calibrar en la primera lectura
                 if (!this.isCalibrated) {
                     this.calibratedGamma = this.gyroGamma;
                     this.calibratedBeta = this.gyroBeta;
@@ -287,7 +307,6 @@ class CubeBattleGame {
                 this.gyroEnabled = true;
             });
             
-            // Solicitar permiso para el giroscopio en dispositivos iOS
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 const startButton = document.querySelector('.start-button');
                 const originalOnClick = startButton.onclick;
@@ -577,19 +596,12 @@ class CubeBattleGame {
 
         let useGyro = false;
 
-        // Controles de giroscopio (si está disponible)
         if (this.gyroEnabled && this.isTouchDevice) {
-            // Llama a la lógica del giroscopio para establecer this.velocity y this.tilt
             this.moveWithGyroscope(); 
-            // Si el giroscopio se usó para mover, ajustamos la bandera.
             if (Math.abs(this.velocity.x) > 0 || Math.abs(this.velocity.y) > 0) {
                 useGyro = true;
             }
         }
-        
-        // Controles de teclado (solo aplican si el giroscopio no está moviendo O si se presionan teclas)
-        // El giroscopio ahora puede ser combinado con el teclado o el teclado puede anularlo.
-        // Para simplificar, si hay entrada de teclado, anulamos la X y/o Y del giroscopio.
 
         let keyboardActive = false;
         
@@ -610,13 +622,6 @@ class CubeBattleGame {
             this.velocity.y = this.speed;
             keyboardActive = true;
         }
-        
-        // Si el teclado está activo, el giroscopio solo influye donde el teclado no actúa.
-        // En la implementación anterior, el teclado simplemente sobrescribe los valores.
-        // Mantendremos la sobrescritura, pero si quieres combinar:
-        // if (!keyboardActive) { /* usar valores de moveWithGyroscope */ }
-        // Ya que moveWithGyroscope establece los valores antes que el teclado, el teclado
-        // tiene prioridad de forma implícita.
 
         const newX = this.position.x + this.velocity.x;
         const newY = this.position.y + this.velocity.y;
@@ -627,58 +632,36 @@ class CubeBattleGame {
 
     moveWithGyroscope() {
         if (!this.isCalibrated) return;
-
-        // Calcular la diferencia (delta) con respecto al punto de calibración.
-        // Para el eje Y (inclinación lateral, ajustado con gamma), el rango es -90 a 90.
         let diffGamma = this.gyroGamma - this.calibratedGamma; 
-
-        // Para el eje X (inclinación frontal/trasera, ajustado con beta), el rango es -180 a 180.
         let diffBeta = this.gyroBeta - this.calibratedBeta;
 
-        // --- Lógica para manejar el salto de ángulo (opcional pero recomendado) ---
-        // Si la diferencia es mayor a 180 grados (ej. 200), significa que pasó 
-        // por el punto de 180/-180, por lo que el camino más corto es por el otro lado.
-        if (diffGamma > 90) { // Usamos 90 porque el rango de gamma es +/- 90 en algunos dispositivos.
+        if (diffGamma > 90) {
             diffGamma -= 180;
         } else if (diffGamma < -90) {
             diffGamma += 180;
         }
-        
-        // Lo mismo para Beta. Algunos navegadores limitan Beta a +/- 90 cuando Gamma es alto.
-        // El rango teórico es +/- 180. Usaremos 180 para mayor seguridad.
+
         if (diffBeta > 180) {
             diffBeta -= 360;
         } else if (diffBeta < -180) {
             diffBeta += 360;
         }
-        // --- Fin de la lógica para manejar el salto de ángulo ---
-
-        // La inclinación del dispositivo (gamma) controla el movimiento horizontal (X).
-        // El beta controla el movimiento vertical (Y).
 
         this.velocity.x = 0;
         this.velocity.y = 0;
 
-        const movementLimit = 45; // Limitar el ángulo máximo a 45 grados para una respuesta total.
+        const movementLimit = 45;
         const maxSpeed = 15;
         
-        // Calcular velocidad X (Horizontal) usando Gamma (inclinación lateral)
         const limitedGamma = Math.sign(diffGamma) * Math.min(Math.abs(diffGamma), movementLimit);
-        this.velocity.x = (limitedGamma / movementLimit) * maxSpeed * 2; // Mapear ángulo limitado a velocidad
+        this.velocity.x = (limitedGamma / movementLimit) * maxSpeed * 2;
         this.tilt = limitedGamma > 0 ? 3 : (limitedGamma < 0 ? -3 : 0);
 
-        // Calcular velocidad Y (Vertical) usando Beta (inclinación frontal/trasera)
         const limitedBeta = Math.sign(diffBeta) * Math.min(Math.abs(diffBeta), movementLimit);
-        // Nota: El signo de Beta puede variar entre dispositivos. 
-        // Si la nave se mueve hacia arriba al inclinarla hacia adelante, invierte el signo.
         this.velocity.y = (-limitedBeta / movementLimit) * maxSpeed * 2; 
-
-        // Aplicar el límite de velocidad final (aunque ya lo hicimos con movementLimit, es un buen chequeo)
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
-        
-        // Combinar el movimiento del giroscopio con el del teclado.
-        // Si el teclado está siendo usado, anula el giroscopio.
+
         if (this.keys.a || this.keys.ArrowLeft) {
             this.velocity.x = -this.speed;
             this.tilt = -3;
@@ -692,9 +675,6 @@ class CubeBattleGame {
         } else if (this.keys.s || this.keys.ArrowDown) {
             this.velocity.y = this.speed;
         }
-
-        // Comentario: El `console.log` puede causar problemas de rendimiento en el móvil.
-        // console.log(`...`); 
     }
     
     rechargeAmmo() {
@@ -947,9 +927,16 @@ class RotationManager {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    const fullscreenManager = new FullscreenManager();
     new RotationManager();
-    new FullscreenManager();
-    
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            fullscreenManager.toggleFullscreen(); 
+        });
+    }
+
     setTimeout(() => {
         new RotationManager().checkRotation();
     }, 100);
