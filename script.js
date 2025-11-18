@@ -607,44 +607,29 @@ class CubeBattleGame {
     
     moveWithGyroscope() {
         if (!this.isCalibrated) return;
-        
-        // Para teléfono en horizontal (landscape):
-        // - Gamma (γ): Inclinación lateral (-90 a 90)
-        //   > 0: inclinado a la derecha (mover derecha)
-        //   < 0: inclinado a la izquierda (mover izquierda)
-        // - Beta (β): Inclinación frontal (-180 a 180)
-        //   > 90: inclinado hacia adelante (mover arriba)  
-        //   < 90: inclinado hacia atrás (mover abajo)
-        
-        // Ajustar valores calibrados
         const adjustedGamma = this.gyroGamma - this.calibratedGamma;
         const adjustedBeta = this.gyroBeta - this.calibratedBeta;
-        
-        // Zona muerta para evitar movimiento con vibraciones pequeñas
         const deadZone = 2;
-        
-        // Movimiento horizontal basado en Gamma
-        if (Math.abs(adjustedGamma) > deadZone) {
-            // Suavizar el movimiento
-            const smoothGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), 30);
-            this.velocity.x = (smoothGamma * this.gyroSensitivity);
-            this.tilt = smoothGamma > 0 ? 3 : -3;
-        }
-        
-        // Movimiento vertical basado en Beta
+
         if (Math.abs(adjustedBeta) > deadZone) {
-            // En landscape, beta=90 significa plano
-            // beta>90 = inclinado hacia el usuario (mover arriba)
-            // beta<90 = inclinado lejos del usuario (mover abajo)
-            const verticalAdjust = adjustedBeta;
-            const smoothBeta = Math.sign(verticalAdjust) * Math.min(Math.abs(verticalAdjust), 30);
-            this.velocity.y = (smoothBeta * this.gyroSensitivity);
+            // Suavizar el movimiento
+            const smoothBeta = Math.sign(adjustedBeta) * Math.min(Math.abs(adjustedBeta), 30);
+            this.velocity.x = (smoothBeta * this.gyroSensitivity);
+            this.tilt = smoothBeta > 0 ? 3 : -3;
         }
-        
-        // Limitar velocidad máxima
+
+        if (Math.abs(adjustedGamma) > deadZone) {
+            const smoothGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), 30);
+            this.velocity.y = (smoothGamma * this.gyroSensitivity);
+        }
+
         const maxSpeed = 15;
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
+        
+        if (Math.random() < 0.05) {
+            console.log(`Gamma: ${this.gyroGamma.toFixed(1)}°, Beta: ${this.gyroBeta.toFixed(1)}°, VelX: ${this.velocity.x.toFixed(1)}, VelY: ${this.velocity.y.toFixed(1)}`);
+        }
     }
     
     rechargeAmmo() {
