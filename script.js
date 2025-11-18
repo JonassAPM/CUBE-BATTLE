@@ -630,11 +630,10 @@ class CubeBattleGame {
         this.position.y = Math.max(0, Math.min(newY, window.innerHeight - this.cubeSize));
     }
 
-moveWithGyroscope() {
+    moveWithGyroscope() {
         if (!this.isCalibrated) return;
-        
-        let diffGamma = this.gyroGamma - this.calibratedGamma; 
-        let diffBeta = this.gyroBeta - this.calibratedBeta;
+        let diffGamma = this.getShortestAngleDiff(this.gyroGamma, this.calibratedGamma); 
+        let diffBeta = this.getShortestAngleDiff(this.gyroBeta, this.calibratedBeta);
 
         this.velocity.x = 0;
         this.velocity.y = 0;
@@ -666,6 +665,18 @@ moveWithGyroscope() {
         } else if (this.keys.s || this.keys.ArrowDown) {
             this.velocity.y = this.speed;
         }
+    }
+
+    getShortestAngleDiff(angle1, angle2) {
+        let diff = angle1 - angle2;
+
+        if (diff > 180) {
+            diff -= 360;
+        } else if (diff < -180) {
+            diff += 360;
+        }
+        
+        return diff;
     }
     
     rechargeAmmo() {
