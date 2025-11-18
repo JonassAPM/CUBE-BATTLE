@@ -607,13 +607,16 @@ class CubeBattleGame {
     
     moveWithGyroscope() {
         if (!this.isCalibrated) return;
+        
         const adjustedGamma = this.gyroGamma - this.calibratedGamma;
         const adjustedBeta = this.gyroBeta - this.calibratedBeta;
+        
         const deadZone = 2;
-
+        
         if (Math.abs(adjustedBeta) > deadZone) {
             const smoothGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), 30);
-            this.velocity.y = (smoothGamma * this.gyroSensitivity);
+            // INVERTIR el signo para el movimiento vertical
+            this.velocity.y = (-smoothGamma * this.gyroSensitivity); // Añadir el signo negativo aquí
         }
 
         if (Math.abs(adjustedGamma) > deadZone) {
@@ -621,7 +624,8 @@ class CubeBattleGame {
             this.velocity.x = (smoothBeta * this.gyroSensitivity);
             this.tilt = smoothBeta > 0 ? 3 : -3;
         }
-
+        
+        // Limitar velocidad máxima
         const maxSpeed = 15;
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
