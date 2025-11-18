@@ -115,6 +115,9 @@ class CubeBattleGame {
         this.gyroSensitivity = 0.2;
         this.lastGyroUpdate = 0;
         this.gyroUpdateRate = 16;
+        this.angularVelocity = { x: 0, y: 0 };
+        this.motionSensitivity = 0.5;
+        this.lastUpdateTime = Date.now();
         
         this.calibratedGamma = 0;
         this.calibratedBeta = 0;
@@ -261,33 +264,16 @@ class CubeBattleGame {
     }
     
     initGyroscope() {
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', (e) => {
-                const currentTime = Date.now();
-                
-                // Limitar la tasa de actualización para mejor rendimiento
-                if (currentTime - this.lastGyroUpdate < this.gyroUpdateRate) {
-                    return;
-                }
-                
-                this.lastGyroUpdate = currentTime;
-                
-                // Obtener valores del giroscopio
-                this.gyroAlpha = e.alpha || 0; // Rotación Z (0-360)
-                this.gyroBeta = e.beta || 0;   // Inclinación X (-180 to 180)
-                this.gyroGamma = e.gamma || 0; // Inclinación Y (-90 to 90)
-                
-                // Calibrar en la primera lectura
-                if (!this.isCalibrated) {
-                    this.calibratedGamma = this.gyroGamma;
-                    this.calibratedBeta = this.gyroBeta;
-                    this.isCalibrated = true;
-                }
-                
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', (e) => {
+
+                const rotationRate = e.rotationRate || { alpha: 0, beta: 0, gamma: 0 };
+
+                this.angularVelocity.x = rotationRate.gamma || 0; 
+                this.angularVelocity.y = rotationRate.beta || 0;
                 this.gyroEnabled = true;
             });
-            
-            // Solicitar permiso para el giroscopio en dispositivos iOS
+
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
                 const startButton = document.querySelector('.start-button');
                 const originalOnClick = startButton.onclick;
@@ -603,28 +589,31 @@ class CubeBattleGame {
     }
 
     moveWithGyroscope() {
-        if (!this.isCalibrated) return;
-        const adjustedGamma = this.gyroBeta - this.calibratedBeta;
-        const adjustedBeta = this.gyroGamma - this.calibratedGamma;
-
-        this.velocity.x = 0;
-        this.velocity.y = 0;
-
-        const movementLimit = 30;
+        if (!this.gyroEnabled) return;
         
-        const limitedGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), movementLimit);
+        const currentTime = Date.now();
+        const deltaTime = (currentTime - this.lastUpdateTime) / 1000;
+
+        this.lastUpdateTime = currentTime;
+
+        const rateX = this.angularVelocity.x;
+        const rateY = this.angularVelocity.y;
+
+        this.velocity.x = rateX * this.motionSensitivity * deltaTime * 200;
+        this.tilt = rateX > 2 ? 3 : (rateX < -2 ? -3 : 0);
+        this.velocity.y = (-rateY * this.motionSensitivity * deltaTime * 200);
+
+        const newX = this.position.x + this.velocity.x;
+        const newY = this.position.y + this.velocity.y;
         
-        this.velocity.x = (limitedGamma * this.gyroSensitivity); 
-        this.tilt = limitedGamma > 0 ? 3 : (limitedGamma < 0 ? -3 : 0);
-
-        const limitedBeta = Math.sign(adjustedBeta) * Math.min(Math.abs(adjustedBeta), movementLimit);
-        this.velocity.y = (-limitedBeta * this.gyroSensitivity); 
-
         const maxSpeed = 15;
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
+        
+        this.position.x = Math.max(0, Math.min(newX, window.innerWidth - this.cubeSize));
+        this.position.y = Math.max(0, Math.min(newY, window.innerHeight - this.cubeSize));
 
-        console.log(`Gamma: ${this.gyroGamma.toFixed(1)}°, Beta: ${this.gyroBeta.toFixed(1)}°, AdjustedGamma: ${adjustedGamma.toFixed(1)}°, AdjustedBeta: ${adjustedBeta.toFixed(1)}°, VelX: ${this.velocity.x.toFixed(1)}, VelY: ${this.velocity.y.toFixed(1)}`);
+        console.log(`RateX (Gamma): ${rateX.toFixed(1)}°, RateY (Beta): ${rateY.toFixed(1)}°, VelX: ${this.velocity.x.toFixed(1)}, VelY: ${this.velocity.y.toFixed(1)}`);
     }
     
     rechargeAmmo() {

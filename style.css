@@ -740,7 +740,7 @@ body {
 
 .health-bar {
     height: 100%;
-    background: linear-gradient(90deg, #00ff41, #00ffff);
+    background: linear-gradient(90deg, #00ff41);
     border-radius: 0.8vh;
     transition: width 0.3s ease;
     box-shadow: 0 0 1vh #00ff41;
@@ -1293,10 +1293,10 @@ html, body {
 
 .charge-bar {
     height: 100%;
-    background: linear-gradient(90deg, #00ffff, #ff00ff) !important;
+    background: linear-gradient(90deg, #00ffff, #00ccff) !important;
     border-radius: 0.6vh;
     transition: width 0.1s ease;
-    box-shadow: 0 0 1vh #ff00ff !important;
+    box-shadow: 0 0 1vh #00ccff !important;
 }
 
 .fullscreen-btn {
