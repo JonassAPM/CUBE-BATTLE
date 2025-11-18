@@ -112,17 +112,13 @@ class CubeBattleGame {
         this.gyroAlpha = 0;
         this.gyroBeta = 0;
         this.gyroGamma = 0;
-        this.gyroSensitivity = 0.5;
+        this.gyroSensitivity = 0.2;
         this.lastGyroUpdate = 0;
         this.gyroUpdateRate = 16;
         
         this.calibratedGamma = 0;
         this.calibratedBeta = 0;
         this.isCalibrated = false;
-
-        this.smoothedBeta = 0;
-        this.smoothedGamma = 0;
-        this.smoothingFactor = 0.15;
         
         this.keys = {
             w: false,
@@ -608,47 +604,27 @@ class CubeBattleGame {
 
     moveWithGyroscope() {
         if (!this.isCalibrated) return;
+        const adjustedGamma = this.gyroGamma - this.calibratedGamma;
+        const adjustedBeta = this.gyroBeta - this.calibratedBeta;
 
-        const alpha = this.smoothingFactor;
-        
-        const rawAdjustedGamma = this.gyroGamma - this.calibratedGamma;
-        const rawAdjustedBeta = this.gyroBeta - this.calibratedBeta;
-        
-        this.smoothedGamma = (this.smoothedGamma * (1 - alpha)) + (rawAdjustedGamma * alpha);
-        this.smoothedBeta = (this.smoothedBeta * (1 - alpha)) + (rawAdjustedBeta * alpha);
-        
-        const adjustedGamma = this.smoothedGamma;
-        const adjustedBeta = this.smoothedBeta;
-
-        const deadZone = 1.5;
-        
         this.velocity.x = 0;
         this.velocity.y = 0;
 
-        if (Math.abs(adjustedGamma) > deadZone) {
-            const movementLimit = 25; 
-            const limitedGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), movementLimit);
-
-            this.velocity.x = (limitedGamma * this.gyroSensitivity); 
-            this.tilt = limitedGamma > 0 ? 3 : -3;
-        } else {
-            this.tilt = 0;
-        }
-
-        if (Math.abs(adjustedBeta) > deadZone) {
-            const movementLimit = 25;
-            const limitedBeta = Math.sign(adjustedBeta) * Math.min(Math.abs(adjustedBeta), movementLimit);
-            this.velocity.y = (-limitedBeta * this.gyroSensitivity); 
-        }
+        const movementLimit = 30;
         
+        const limitedGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), movementLimit);
+        
+        this.velocity.x = (limitedGamma * this.gyroSensitivity); 
+        this.tilt = limitedGamma > 0 ? 3 : (limitedGamma < 0 ? -3 : 0);
+
+        const limitedBeta = Math.sign(adjustedBeta) * Math.min(Math.abs(adjustedBeta), movementLimit);
+        this.velocity.y = (limitedBeta * this.gyroSensitivity); 
+
         const maxSpeed = 15;
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
-        
 
-        if (Math.random() < 0.05) {
-            console.log(`SmoothGamma: ${this.smoothedGamma.toFixed(1)}°, SmoothBeta: ${this.smoothedBeta.toFixed(1)}°, VelX: ${this.velocity.x.toFixed(1)}, VelY: ${this.velocity.y.toFixed(1)}`);
-        }
+        console.log(`Gamma: ${this.gyroGamma.toFixed(1)}°, Beta: ${this.gyroBeta.toFixed(1)}°, AdjustedGamma: ${adjustedGamma.toFixed(1)}°, AdjustedBeta: ${adjustedBeta.toFixed(1)}°, VelX: ${this.velocity.x.toFixed(1)}, VelY: ${this.velocity.y.toFixed(1)}`);
     }
     
     rechargeAmmo() {
