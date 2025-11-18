@@ -81,7 +81,7 @@ class CubeBattleGame {
             y: window.innerHeight / 2 - 30
         };
         
-        this.speed = 8;
+        this.speed = 12;
         this.cubeSize = 60;
         this.tilt = 0;
         this.velocity = { x: 0, y: 0 };
