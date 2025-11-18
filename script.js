@@ -654,11 +654,11 @@ class CubeBattleGame {
         const maxSpeed = 15;
         
         const limitedGamma = Math.sign(diffGamma) * Math.min(Math.abs(diffGamma), movementLimit);
-        this.velocity.x = (limitedGamma / movementLimit) * maxSpeed;
+        this.velocity.x = (limitedGamma / movementLimit) * maxSpeed / 2;
         this.tilt = limitedGamma > 0 ? 3 : (limitedGamma < 0 ? -3 : 0);
 
         const limitedBeta = Math.sign(diffBeta) * Math.min(Math.abs(diffBeta), movementLimit);
-        this.velocity.y = (-limitedBeta / movementLimit) * maxSpeed; 
+        this.velocity.y = (-limitedBeta / movementLimit) * maxSpeed / 2; 
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
 
