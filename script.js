@@ -618,7 +618,7 @@ class CubeBattleGame {
         this.tilt = limitedGamma > 0 ? 3 : (limitedGamma < 0 ? -3 : 0);
 
         const limitedBeta = Math.sign(adjustedBeta) * Math.min(Math.abs(adjustedBeta), movementLimit);
-        this.velocity.y = (limitedBeta * this.gyroSensitivity); 
+        this.velocity.y = (-limitedBeta * this.gyroSensitivity); 
 
         const maxSpeed = 15;
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
