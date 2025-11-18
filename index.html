@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CUBE BATTLE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="icon.png">
+</head>
+<body>
+    <div id="rotateAlert" class="rotate-alert">
+        <div class="rotate-message">
+            <div class="rotate-icon">↻</div>
+            <p>Gira tu dispositivo a horizontal</p>
+            <p>para una mejor experiencia</p>
+        </div>
+    </div>
+    <div id="configScreen" class="start-screen">
+        <div class="terminal-window">
+            <div class="terminal-header">
+                <span class="terminal-title">CONFIGURACION DEL SISTEMA</span>
+            </div>
+            <div class="terminal-body">
+                <div class="scan-line"></div>
+                <h1 class="glitch-text">CUBE BATTLE</h1>
+                
+                <div class="name-input-container">
+                    <div class="command-line">
+                        <span class="prompt">></span>
+                        <span class="command">INGRESA TU NOMBRE (MAX 10)</span>
+                    </div>
+                    <input type="text" id="playerName" class="name-input" maxlength="10" placeholder="JUGADOR">
+                </div>
+
+                <div class="color-selector-compact">
+                    <div class="color-grid">
+                        <div class="color-option-small" data-color="green" onclick="selectColor('green')">
+                            <div class="color-preview-small green"></div>
+                        </div>
+                        <div class="color-option-small" data-color="blue" onclick="selectColor('blue')">
+                            <div class="color-preview-small blue"></div>
+                        </div>
+                        <div class="color-option-small" data-color="red" onclick="selectColor('red')">
+                            <div class="color-preview-small red"></div>
+                        </div>
+                        <div class="color-option-small" data-color="purple" onclick="selectColor('purple')">
+                            <div class="color-preview-small purple"></div>
+                        </div>
+                        <div class="color-option-small" data-color="cyan" onclick="selectColor('cyan')">
+                            <div class="color-preview-small cyan"></div>
+                        </div>
+                        <div class="color-option-small" data-color="yellow" onclick="selectColor('yellow')">
+                            <div class="color-preview-small yellow"></div>
+                        </div>
+                        <div class="color-option-small" data-color="pink" onclick="selectColor('pink')">
+                            <div class="color-preview-small pink"></div>
+                        </div>
+                        <div class="color-option-small" data-color="orange" onclick="selectColor('orange')">
+                            <div class="color-preview-small orange"></div>
+                        </div>
+                    </div>
+                    <div class="color-label">SELECCIONA COLOR</div>
+                </div>
+
+                <div class="config-button" onclick="showControlsScreen()">
+                    <span class="btn-text">ACEPTAR</span>
+                    <div class="btn-glow"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="controlsScreen" class="start-screen hidden">
+        <div class="terminal-window">
+            <div class="terminal-header">
+                <span class="terminal-title">CONTROLES DEL SISTEMA</span>
+            </div>
+            <div class="terminal-body">
+                <div class="scan-line"></div>
+
+                <div class="controls-info">
+                    <div class="shoot-text">TECLAS DE MOVIMIENTO</div>
+                    <div class="wasd-container">
+                        <div class="wasd-row">
+                            <div class="wasd-key">W</div>
+                        </div>
+                        <div class="wasd-row">
+                            <div class="wasd-key">A</div>
+                            <div class="wasd-key">S</div>
+                            <div class="wasd-key">D</div>
+                        </div>
+                    </div>
+                    <h5>---------------</h5>
+                    <div class="shoot-info">
+                        <div class="shoot-text">CARGA DISPARO</div>
+                        <div class="shoot-key">MANTENER ESPACIO / ENTER</div>
+                    </div>
+                    <h5>---------------</h5>
+                    <div class="mobile-controls-info">
+                        <div class="shoot-text">CONTROLES MÓVIL</div>
+                        <div class="mobile-controls">
+                            <div class="mobile-control-item">
+                                <span>-Inclina el dispositivo para mover</span>
+                            </div>
+                            <div class="mobile-control-item">
+                                <span>-Toca para disparo rápido</span>
+                            </div>
+                            <div class="mobile-control-item">
+                                <span>-Mantén presionado para cargar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-info">
+                    <div class="info-item">
+                        <span class="info-label">JUGADOR:</span>
+                        <span id="previewPlayerName" class="info-value">JUGADOR</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">COLOR:</span>
+                        <span id="previewPlayerColor" class="info-value">VERDE</span>
+                    </div>
+                </div>
+
+                <div class="buttons-container">
+                    <div class="back-button" onclick="showConfigScreen()">
+                        <span class="btn-text">VOLVER</span>
+                        <div class="btn-glow"></div>
+                    </div>
+                    <div class="start-button" onclick="startGame()">
+                        <span class="btn-text">INICIAR JUEGO</span>
+                        <div class="btn-glow"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameContainer" class="game-container hidden">
+        <div id="cube" class="cyber-cube">
+            <div class="cube-face front"></div>
+            <div class="cube-face back"></div>
+            <div class="cube-face left"></div>
+            <div class="cube-face right"></div>
+            <div class="cube-face top"></div>
+            <div class="cube-face bottom"></div>
+            <div class="core-glow"></div>
+            
+            <div class="ammo-bar left"></div>
+            <div class="ammo-bar right"></div>
+
+            <div class="charge-effect"></div>
+        </div>
+
+        <div id="chargingBullet" class="charging-bullet hidden"></div>
+
+        <div id="bulletsContainer"></div>
+
+        <div id="touchControls" class="touch-controls">
+            <div class="touch-shoot-area" id="shootArea">
+                <div class="touch-shoot-button">
+                    <span class="touch-shoot-text">DISPARAR</span>
+                    <div class="touch-shoot-glow"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud">
+            <div class="hud-section">
+                <div class="hud-item">
+                    <span class="hud-label">PILOTO</span>
+                    <span id="playerNameDisplay" class="hud-value">JUGADOR</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">VIDA</span>
+                    <div class="health-bar-container">
+                        <div id="healthBar" class="health-bar" style="width: 100%"></div>
+                        <div class="health-text" id="healthText">10/10</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hud-section">
+                <div class="hud-item">
+                    <span class="hud-label">MUNICION</span>
+                    <span id="bulletCount" class="hud-value">10/10</span>
+                </div>
+                <div class="charge-indicator">
+                    <span class="hud-label">CARGA</span>
+                    <div class="charge-bar-container">
+                        <div id="chargeBar" class="charge-bar" style="width: 0%"></div>
+                    </div>
+                    <span id="chargeLevel" class="hud-value">0%</span>
+                </div>
+            </div>
+            
+            <div class="hud-section">
+                <div class="hud-item">
+                    <span class="hud-label">POSICION</span>
+                    <span id="position" class="hud-value">X:0 Y:0</span>
+                </div>
+                <div class="fullscreen-button-container">
+                    <button id="fullscreenBtn" class="fullscreen-btn" title="Pantalla Completa">
+                        <span class="fullscreen-icon">⛶</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-overlay"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
