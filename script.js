@@ -630,29 +630,25 @@ class CubeBattleGame {
         this.position.y = Math.max(0, Math.min(newY, window.innerHeight - this.cubeSize));
     }
 
-    moveWithGyroscope() {
+moveWithGyroscope() {
         if (!this.isCalibrated) return;
-        let diffX = this.gyroBeta - this.calibratedBeta; 
-        let diffY = this.gyroGamma - this.calibratedGamma;
-
-        if (diffX > 180) {
-            diffX -= 360;
-        } else if (diffX < -180) {
-            diffX += 360;
-        }
         
+        let diffGamma = this.gyroGamma - this.calibratedGamma; 
+        let diffBeta = this.gyroBeta - this.calibratedBeta;
+
         this.velocity.x = 0;
         this.velocity.y = 0;
 
         const movementLimit = 45;
-        const maxSpeed = this.speed * 0.75;
-
-        const limitedX = Math.sign(diffX) * Math.min(Math.abs(diffX), movementLimit);
-        this.velocity.x = (limitedX / movementLimit) * maxSpeed;
-        this.tilt = limitedX > 0 ? 3 : (limitedX < 0 ? -3 : 0);
-
-        const limitedY = Math.sign(diffY) * Math.min(Math.abs(diffY), movementLimit);
-        this.velocity.y = (-limitedY / movementLimit) * maxSpeed; 
+        const maxSpeed = 15;
+        const reducedSpeed = this.speed * 0.75; 
+        
+        const limitedGamma = Math.sign(diffGamma) * Math.min(Math.abs(diffGamma), movementLimit);
+        this.velocity.x = (limitedGamma / movementLimit) * reducedSpeed;
+        this.tilt = limitedGamma > 0 ? 3 : (limitedGamma < 0 ? -3 : 0);
+        
+        const limitedBeta = Math.sign(diffBeta) * Math.min(Math.abs(diffBeta), movementLimit);
+        this.velocity.y = (-limitedBeta / movementLimit) * reducedSpeed; 
         
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
