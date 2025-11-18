@@ -101,27 +101,28 @@ class CubeBattleGame {
 
         this.maxHealth = 10;
         this.currentHealth = this.maxHealth;
-        
-        // Controles móviles
+
         this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         this.touchStartTime = 0;
         this.touchTimeout = null;
         this.isTouchCharging = false;
         this.lastTouchTime = 0;
-        
-        // Giroscopio mejorado
+
         this.gyroEnabled = false;
         this.gyroAlpha = 0;
         this.gyroBeta = 0;
         this.gyroGamma = 0;
-        this.gyroSensitivity = 0.3;
+        this.gyroSensitivity = 0.5;
         this.lastGyroUpdate = 0;
-        this.gyroUpdateRate = 16; // ~60fps
+        this.gyroUpdateRate = 16;
         
-        // Calibración inicial
         this.calibratedGamma = 0;
         this.calibratedBeta = 0;
         this.isCalibrated = false;
+
+        this.smoothedBeta = 0;
+        this.smoothedGamma = 0;
+        this.smoothingFactor = 0.15;
         
         this.keys = {
             w: false,
@@ -604,34 +605,49 @@ class CubeBattleGame {
         this.position.x = Math.max(0, Math.min(newX, window.innerWidth - this.cubeSize));
         this.position.y = Math.max(0, Math.min(newY, window.innerHeight - this.cubeSize));
     }
-    
+
     moveWithGyroscope() {
         if (!this.isCalibrated) return;
+
+        const alpha = this.smoothingFactor;
         
-        const adjustedGamma = this.gyroGamma - this.calibratedGamma;
-        const adjustedBeta = this.gyroBeta - this.calibratedBeta;
+        const rawAdjustedGamma = this.gyroGamma - this.calibratedGamma;
+        const rawAdjustedBeta = this.gyroBeta - this.calibratedBeta;
         
-        const deadZone = 2;
+        this.smoothedGamma = (this.smoothedGamma * (1 - alpha)) + (rawAdjustedGamma * alpha);
+        this.smoothedBeta = (this.smoothedBeta * (1 - alpha)) + (rawAdjustedBeta * alpha);
         
-        if (Math.abs(adjustedBeta) > deadZone) {
-            const smoothGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), 30);
-            // INVERTIR el signo para el movimiento vertical
-            this.velocity.y = (-smoothGamma * this.gyroSensitivity); // Añadir el signo negativo aquí
-        }
+        const adjustedGamma = this.smoothedGamma;
+        const adjustedBeta = this.smoothedBeta;
+
+        const deadZone = 1.5;
+        
+        this.velocity.x = 0;
+        this.velocity.y = 0;
 
         if (Math.abs(adjustedGamma) > deadZone) {
-            const smoothBeta = Math.sign(adjustedBeta) * Math.min(Math.abs(adjustedBeta), 30);
-            this.velocity.x = (smoothBeta * this.gyroSensitivity);
-            this.tilt = smoothBeta > 0 ? 3 : -3;
+            const movementLimit = 25; 
+            const limitedGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), movementLimit);
+
+            this.velocity.x = (limitedGamma * this.gyroSensitivity); 
+            this.tilt = limitedGamma > 0 ? 3 : -3;
+        } else {
+            this.tilt = 0;
+        }
+
+        if (Math.abs(adjustedBeta) > deadZone) {
+            const movementLimit = 25;
+            const limitedBeta = Math.sign(adjustedBeta) * Math.min(Math.abs(adjustedBeta), movementLimit);
+            this.velocity.y = (-limitedBeta * this.gyroSensitivity); 
         }
         
-        // Limitar velocidad máxima
         const maxSpeed = 15;
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
         
+
         if (Math.random() < 0.05) {
-            console.log(`Gamma: ${this.gyroGamma.toFixed(1)}°, Beta: ${this.gyroBeta.toFixed(1)}°, VelX: ${this.velocity.x.toFixed(1)}, VelY: ${this.velocity.y.toFixed(1)}`);
+            console.log(`SmoothGamma: ${this.smoothedGamma.toFixed(1)}°, SmoothBeta: ${this.smoothedBeta.toFixed(1)}°, VelX: ${this.velocity.x.toFixed(1)}, VelY: ${this.velocity.y.toFixed(1)}`);
         }
     }
     
