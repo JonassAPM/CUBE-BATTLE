@@ -612,15 +612,14 @@ class CubeBattleGame {
         const deadZone = 2;
 
         if (Math.abs(adjustedBeta) > deadZone) {
-            // Suavizar el movimiento
-            const smoothBeta = Math.sign(adjustedBeta) * Math.min(Math.abs(adjustedBeta), 30);
-            this.velocity.x = (smoothBeta * this.gyroSensitivity);
-            this.tilt = smoothBeta > 0 ? 3 : -3;
+            const smoothGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), 30);
+            this.velocity.y = (smoothGamma * this.gyroSensitivity);
         }
 
         if (Math.abs(adjustedGamma) > deadZone) {
-            const smoothGamma = Math.sign(adjustedGamma) * Math.min(Math.abs(adjustedGamma), 30);
-            this.velocity.y = (smoothGamma * this.gyroSensitivity);
+            const smoothBeta = Math.sign(adjustedBeta) * Math.min(Math.abs(adjustedBeta), 30);
+            this.velocity.x = (smoothBeta * this.gyroSensitivity);
+            this.tilt = smoothBeta > 0 ? 3 : -3;
         }
 
         const maxSpeed = 15;
