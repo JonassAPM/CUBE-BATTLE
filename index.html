@@ -180,6 +180,13 @@
 
     <!-- CUARTA PANTALLA - JUEGO -->
     <div id="gameContainer" class="game-container hidden">
+        <!-- JOYSTICK - SIEMPRE PRESENTE PERO OCULTO INICIALMENTE -->
+        <div class="joystick-container" id="joystickContainer">
+            <div class="joystick-base">
+                <div class="joystick-handle" id="joystickHandle"></div>
+            </div>
+        </div>
+
         <div id="cube" class="cyber-cube">
             <div class="cube-face front"></div>
             <div class="cube-face back"></div>
@@ -199,12 +206,8 @@
 
         <div id="bulletsContainer"></div>
 
-        <div id="touchControls" class="touch-controls">
-            <div class="joystick-container">
-                <div class="joystick-base">
-                    <div class="joystick-handle" id="joystickHandle"></div>
-                </div>
-            </div>
+        <!-- CONTROLES TÁCTILES -->
+        <div class="touch-controls" id="touchControls">
             <div class="touch-shoot-area" id="shootArea">
                 <div class="touch-shoot-button">
                     <span class="touch-shoot-text">DISPARAR</span>
@@ -213,6 +216,7 @@
             </div>
         </div>
 
+        <!-- HUD -->
         <div class="hud">
             <div class="hud-section">
                 <div class="hud-item">

@@ -1,6 +1,7 @@
+// VARIABLES GLOBALES
 let selectedColor = 'green';
 let playerName = 'JUGADOR';
-let controlMode = 'auto'; // 'pc', 'mobile', 'auto'
+let controlMode = 'auto';
 let isMobileDevice = false;
 
 const colorNames = {
@@ -32,6 +33,7 @@ function selectColor(color) {
     document.querySelector(`.color-option-small[data-color="${color}"]`).classList.add('selected');
 }
 
+// INICIALIZACIÓN
 document.addEventListener('DOMContentLoaded', function() {
     const nameInput = document.getElementById('playerName');
     nameInput.addEventListener('input', function() {
@@ -39,37 +41,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     selectColor('green');
+    detectDevice();
+    
+    // Mostrar pantalla de selección de controles
+    showControlSelectScreen();
 });
 
-function showControlsScreen() {
-    const configScreen = document.getElementById('configScreen');
-    const controlsScreen = document.getElementById('controlsScreen');
-
-    document.getElementById('previewPlayerName').textContent = playerName;
-    document.getElementById('previewPlayerColor').textContent = colorNames[selectedColor];
-    
-    configScreen.classList.add('hidden');
-    controlsScreen.classList.remove('hidden');
-}
-
-function showConfigScreen() {
-    const configScreen = document.getElementById('configScreen');
-    const controlsScreen = document.getElementById('controlsScreen');
-    
-    controlsScreen.classList.add('hidden');
-    configScreen.classList.remove('hidden');
-}
-
-// MOSTRAR MENÚ DE SELECCIÓN DE CONTROLES
+// PANTALLAS
 function showControlSelectScreen() {
     const rotateAlert = document.getElementById('rotateAlert');
     const controlSelectScreen = document.getElementById('controlSelectScreen');
     
     rotateAlert.classList.add('hidden');
     controlSelectScreen.classList.remove('hidden');
-    
-    // Detectar dispositivo automáticamente
-    detectDevice();
 }
 
 function selectControlMode(mode) {
@@ -91,6 +75,25 @@ function autoDetectControls() {
     }
 }
 
+function showControlsScreen() {
+    const configScreen = document.getElementById('configScreen');
+    const controlsScreen = document.getElementById('controlsScreen');
+
+    document.getElementById('previewPlayerName').textContent = playerName;
+    document.getElementById('previewPlayerColor').textContent = colorNames[selectedColor];
+    
+    configScreen.classList.add('hidden');
+    controlsScreen.classList.remove('hidden');
+}
+
+function showConfigScreen() {
+    const configScreen = document.getElementById('configScreen');
+    const controlsScreen = document.getElementById('controlsScreen');
+    
+    controlsScreen.classList.add('hidden');
+    configScreen.classList.remove('hidden');
+}
+
 function startGame() {
     const controlsScreen = document.getElementById('controlsScreen');
     const gameContainer = document.getElementById('gameContainer');
@@ -98,25 +101,18 @@ function startGame() {
     controlsScreen.classList.add('hidden');
     gameContainer.classList.remove('hidden');
     
-    // LIMPIAR CLASES ANTERIORES PRIMERO
+    console.log('🎮 Iniciando juego con modo:', controlMode);
+    
+    // LIMPIAR CLASES ANTERIORES
     gameContainer.classList.remove('mobile-controls-active', 'pc-controls-active');
     
-    // FORZAR CONTROLES MÓVILES SI SE SELECCIONÓ MÓVIL
+    // APLICAR MODO DE CONTROLES
     if (controlMode === 'mobile') {
         gameContainer.classList.add('mobile-controls-active');
-        console.log('✅ Controles móviles ACTIVADOS - Joystick visible');
-    } else if (controlMode === 'pc') {
+        console.log('✅ CONTROLES MÓVILES ACTIVADOS');
+    } else {
         gameContainer.classList.add('pc-controls-active');
         console.log('🎮 Controles PC activados');
-    } else {
-        // Auto-detección
-        if (isMobileDevice) {
-            gameContainer.classList.add('mobile-controls-active');
-            console.log('✅ Controles móviles (auto) ACTIVADOS');
-        } else {
-            gameContainer.classList.add('pc-controls-active');
-            console.log('🎮 Controles PC (auto) activados');
-        }
     }
     
     // INDICAR QUE EL JUEGO INICIÓ
@@ -126,19 +122,6 @@ function startGame() {
     
     // INICIALIZAR EL JUEGO
     new CubeBattleGame();
-    
-    // DEBUG: Verificar si los controles son visibles
-    setTimeout(() => {
-        const joystick = document.querySelector('.joystick-container');
-        const touchControls = document.querySelector('.touch-controls');
-        console.log('🔍 DEBUG Controles:', {
-            controlMode,
-            isMobileDevice,
-            joystickVisible: joystick ? window.getComputedStyle(joystick).display : 'no encontrado',
-            touchControlsVisible: touchControls ? window.getComputedStyle(touchControls).display : 'no encontrado',
-            gameContainerClasses: gameContainer.className
-        });
-    }, 100);
 }
 
 // CLASE JOYSTICK VIRTUAL
@@ -256,6 +239,7 @@ class VirtualJoystick {
     }
 }
 
+// CLASE PRINCIPAL DEL JUEGO
 class CubeBattleGame {
     constructor() {
         this.cube = document.getElementById('cube');
@@ -306,7 +290,7 @@ class CubeBattleGame {
 
         // JOYSTICK
         this.joystick = null;
-        this.usingMobileControls = this.gameContainer.classList.contains('mobile-controls-active');
+        this.usingMobileControls = controlMode === 'mobile';
 
         this.keys = {
             w: false,
@@ -324,8 +308,7 @@ class CubeBattleGame {
         console.log('🎯 Inicializando juego:', {
             controlMode,
             isMobileDevice,
-            usingMobileControls: this.usingMobileControls,
-            gameContainerClass: this.gameContainer.className
+            usingMobileControls: this.usingMobileControls
         });
 
         this.applySelectedColor();
@@ -378,9 +361,9 @@ class CubeBattleGame {
         document.addEventListener('keyup', (e) => this.handleKeyUp(e));
         window.addEventListener('resize', () => this.handleResize());
         
-        // INICIALIZAR JOYSTICK SOLO SI ES MÓVIL
+        // INICIALIZAR JOYSTICK SI ESTAMOS EN MODO MÓVIL
         if (this.usingMobileControls) {
-            console.log('🕹️ Inicializando joystick para móvil...');
+            console.log('📱 Inicializando joystick para móvil...');
             this.initJoystick();
         } else {
             console.log('⌨️ Usando controles de teclado');
@@ -400,23 +383,14 @@ class CubeBattleGame {
         
         console.log('🔧 Buscando elementos del joystick:', { 
             handle: !!handle, 
-            base: !!base,
-            gameContainerClass: this.gameContainer.className 
+            base: !!base 
         });
         
-        // VERIFICAR SI DEBERÍA MOSTRARSE EL JOYSTICK
-        const shouldShowJoystick = this.gameContainer.classList.contains('mobile-controls-active');
-        console.log('📱 ¿Mostrar joystick?', shouldShowJoystick);
-        
-        if (handle && base && shouldShowJoystick) {
+        if (handle && base) {
             this.joystick = new VirtualJoystick(handle, base);
-            console.log('✅ Joystick virtual creado exitosamente');
+            console.log('✅ Joystick virtual inicializado correctamente');
         } else {
-            console.log('❌ Joystick no creado:', {
-                handleExists: !!handle,
-                baseExists: !!base,
-                mobileActive: shouldShowJoystick
-            });
+            console.error('❌ No se pudo inicializar el joystick: elementos no encontrados');
         }
     }
     
@@ -953,6 +927,7 @@ class CubeBattleGame {
     }
 }
 
+// GESTOR DE PANTALLA COMPLETA
 class FullscreenManager {
     constructor() {
         this.fullscreenBtn = document.getElementById('fullscreenBtn');
@@ -1030,16 +1005,13 @@ class FullscreenManager {
     }
 }
 
+// GESTOR DE ROTACIÓN
 class RotationManager {
     constructor() {
         this.rotateAlert = document.getElementById('rotateAlert');
         this.gameStarted = false;
-        this.initialCheckDone = false; // Para evitar checks iniciales
         
-        // Solo mostrar alerta de rotación al inicio
         this.checkInitialRotation();
-        
-        // Escuchar solo cambios de orientación, no de resize
         window.addEventListener('orientationchange', () => this.handleOrientationChange());
     }
 
@@ -1051,11 +1023,9 @@ class RotationManager {
         } else {
             this.hideRotationAlert();
         }
-        this.initialCheckDone = true;
     }
 
     handleOrientationChange() {
-        // Solo manejar cambios de orientación si el juego no ha iniciado
         if (this.gameStarted) return;
         
         const isVertical = window.innerHeight > window.innerWidth;
@@ -1064,29 +1034,6 @@ class RotationManager {
             this.showRotationAlert();
         } else {
             this.hideRotationAlert();
-            // Solo mostrar selección de controles si es la primera vez
-            if (!document.getElementById('controlSelectScreen').classList.contains('hidden')) {
-                return; // Ya está visible
-            }
-            this.showControlSelect();
-        }
-    }
-    
-    checkRotation() {
-        const isVertical = window.innerHeight > window.innerWidth;
-        
-        // SI EL JUEGO YA INICIÓ, NO HACER NADA
-        if (this.gameStarted) {
-            return;
-        }
-        
-        if (isVertical) {
-            this.showRotationAlert();
-        } else {
-            this.hideRotationAlert();
-            setTimeout(() => {
-                this.showControlSelect();
-            }, 500);
         }
     }
     
@@ -1101,23 +1048,10 @@ class RotationManager {
             this.rotateAlert.style.display = 'none';
         }
     }
-    
-    showControlSelect() {
-        if (this.controlSelectScreen && !this.gameStarted) {
-            document.getElementById('controlSelectScreen').classList.remove('hidden');
-            document.getElementById('configScreen').classList.add('hidden');
-            document.getElementById('controlsScreen').classList.add('hidden');
-            document.getElementById('gameContainer').classList.add('hidden');
-        }
-    }
 
     setGameStarted() {
         this.gameStarted = true;
         this.hideRotationAlert();
-        // Ocultar todas las pantallas de menú
-        document.querySelectorAll('.start-screen').forEach(screen => {
-            screen.classList.add('hidden');
-        });
     }
 }
 
@@ -1134,19 +1068,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Detectar dispositivo al cargar
-    detectDevice();
-    
-    // ELIMINAR cualquier setTimeout o check adicional
-});
-
-// PREVENIR ZOOM Y GESTOS NO DESEADOS
-document.addEventListener('DOMContentLoaded', function() {
+    // PREVENIR ZOOM Y GESTOS NO DESEADOS
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=')) {
             e.preventDefault();
         }
     });
+    
     document.addEventListener('wheel', function(e) {
         if (e.ctrlKey) {
             e.preventDefault();

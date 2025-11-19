@@ -378,7 +378,7 @@ body {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .game-container {
@@ -614,13 +614,54 @@ body {
     100% { transform: translateY(0); }
 }
 
-/* Controles táctiles */
+/* JOYSTICK - POSICIÓN FIJA Y VISIBLE CUANDO SE ACTIVA */
+.joystick-container {
+    position: absolute;
+    bottom: 10vh;
+    left: 3vw;
+    z-index: 50;
+    display: none; /* Oculto por defecto */
+}
+
+.joystick-base {
+    width: 15vw;
+    height: 15vw;
+    min-width: 80px;
+    min-height: 80px;
+    background: radial-gradient(circle, rgba(0, 255, 65, 0.3), rgba(0, 255, 65, 0.1));
+    border: 0.3vh solid #00ff41;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 2vh rgba(0, 255, 65, 0.5);
+}
+
+.joystick-handle {
+    width: 6vw;
+    height: 6vw;
+    min-width: 30px;
+    min-height: 30px;
+    background: radial-gradient(circle, #00ff41, #00cc00);
+    border: 0.2vh solid #00ff41;
+    border-radius: 50%;
+    transition: transform 0.1s ease;
+    box-shadow: 0 0 1vh #00ff41;
+    cursor: move;
+}
+
+.joystick-handle.active {
+    background: radial-gradient(circle, #ffff00, #ffcc00);
+    box-shadow: 0 0 2vh #ffff00;
+}
+
+/* CONTROLES TÁCTILES */
 .touch-controls {
     position: absolute;
     bottom: 10vh;
     right: 3vw;
     z-index: 50;
-    display: none;
+    display: none; /* Oculto por defecto */
 }
 
 .touch-shoot-area {
@@ -683,6 +724,17 @@ body {
 @keyframes touchPulse {
     0% { transform: scale(1); opacity: 0.3; }
     100% { transform: scale(1.1); opacity: 0.7; }
+}
+
+/* CLASES PARA ACTIVAR CONTROLES */
+.mobile-controls-active .joystick-container,
+.mobile-controls-active .touch-controls {
+    display: block !important;
+}
+
+.pc-controls-active .joystick-container,
+.pc-controls-active .touch-controls {
+    display: none !important;
 }
 
 .hud {
@@ -907,560 +959,6 @@ body {
     background: radial-gradient(circle at center, #1a0a00 0%, #000 100%);
 }
 
-@media (max-width: 480px) {
-    .buttons-container {
-        flex-direction: column;
-        gap: 1vh;
-    }
-    
-    .buttons-container .start-button,
-    .buttons-container .back-button {
-        width: 20vw;
-    }
-    
-    .hud {
-        height: 10vh;
-        flex-direction: column;
-        padding: 1vh 3vw;
-    }
-    
-    .hud-section {
-        gap: 3vw;
-    }
-}
-
-html, body {
-    touch-action: manipulation;
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    overflow: hidden;
-}
-
-* {
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.game-container {
-    zoom: 1;
-}
-
-.fullscreen-button-container {
-    display: flex;
-    align-items: center;
-}
-
-.fullscreen-btn {
-    background: rgba(0, 255, 65, 0.2);
-    border: 0.2vh solid #00ff41;
-    color: #00ff41;
-    width: 3vw;
-    height: 3vw;
-    min-width: 30px;
-    min-height: 30px;
-    border-radius: 0.5vw;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5vh;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 1vh rgba(0, 255, 65, 0.3);
-}
-
-.fullscreen-btn:hover {
-    background: rgba(0, 255, 65, 0.4);
-    box-shadow: 0 0 2vh #00ff41;
-    transform: scale(1.1);
-}
-
-.fullscreen-btn:active {
-    transform: scale(0.95);
-}
-
-.fullscreen-btn.fullscreen-active {
-    background: rgba(255, 0, 0, 0.2);
-    border-color: #ff0033;
-    color: #ff0033;
-}
-
-.fullscreen-btn.fullscreen-active:hover {
-    background: rgba(255, 0, 0, 0.4);
-    box-shadow: 0 0 2vh #ff0033;
-}
-
-.rotate-alert {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
-
-.rotate-message {
-    text-align: center;
-    color: #00ff41;
-    padding: 4vh;
-    background: rgba(0, 34, 0, 0.9);
-    border: 0.3vh solid #00ff41;
-    border-radius: 1vw;
-    box-shadow: 0 0 4vh rgba(0, 255, 65, 0.5);
-}
-
-.rotate-icon {
-    font-size: 8vh;
-    margin-bottom: 2vh;
-    animation: rotatePhone 2s infinite ease-in-out;
-}
-
-.rotate-message p {
-    margin: 1vh 0;
-    font-size: 1.8vh;
-    text-shadow: 0 0 1vh #00ff41;
-}
-
-@keyframes rotatePhone {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(90deg); }
-    50% { transform: rotate(0deg); }
-    75% { transform: rotate(-90deg); }
-}
-
-@media (max-width: 768px) and (orientation: portrait) {
-    .rotate-alert:not(.hidden) {
-        display: flex !important;
-    }
-    
-    .hud {
-        height: 12vh;
-        padding: 1vh 2vw;
-    }
-    
-    .fullscreen-btn {
-        width: 6vw;
-        height: 6vw;
-        min-width: 40px;
-        min-height: 40px;
-        font-size: 2vh;
-    }
-    
-    .touch-controls {
-        display: block;
-    }
-}
-
-@media (max-width: 768px) and (orientation: landscape) {
-    .rotate-alert {
-        display: none !important;
-    }
-    
-    .hud {
-        height: 10vh;
-        padding: 0.5vh 2vw;
-    }
-    
-    .hud-label {
-        font-size: 0.9vh;
-    }
-    
-    .hud-value {
-        font-size: 1.1vh;
-    }
-    
-    .touch-controls {
-        display: block;
-    }
-}
-
-@media (min-width: 769px) {
-    .rotate-alert {
-        display: none !important;
-    }
-    
-    .touch-controls {
-        display: none;
-    }
-}
-
-@media (max-width: 768px) and (orientation: portrait) {
-    .rotate-alert:not(.hidden) {
-        display: flex !important;
-    }
-}
-
-@media (max-width: 768px) and (orientation: landscape) {
-    .rotate-alert {
-        display: none !important;
-    }
-}
-
-.rotate-alert {
-    display: none;
-}
-
-.rotate-alert:not(.hidden) {
-    display: flex;
-}
-
-.rotate-alert {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 10000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
-
-.rotate-message {
-    text-align: center;
-    color: #00ff41;
-    padding: 4vh;
-    background: rgba(0, 34, 0, 0.9);
-    border: 0.3vh solid #00ff41;
-    border-radius: 1vw;
-    box-shadow: 0 0 4vh rgba(0, 255, 65, 0.5);
-}
-
-.rotate-icon {
-    font-size: 8vh;
-    margin-bottom: 2vh;
-    animation: rotatePhone 2s infinite ease-in-out;
-}
-
-.rotate-message p {
-    margin: 1vh 0;
-    font-size: 1.8vh;
-    text-shadow: 0 0 1vh #00ff41;
-}
-
-@keyframes rotatePhone {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(90deg); }
-    50% { transform: rotate(0deg); }
-    75% { transform: rotate(-90deg); }
-}
-
-.fullscreen-button-container {
-    display: flex;
-    align-items: center;
-}
-
-.fullscreen-btn {
-    background: rgba(0, 255, 65, 0.2);
-    border: 0.2vh solid #00ff41;
-    color: #00ff41;
-    width: 3vw;
-    height: 3vw;
-    min-width: 30px;
-    min-height: 30px;
-    border-radius: 0.5vw;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5vh;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 1vh rgba(0, 255, 65, 0.3);
-}
-
-.fullscreen-btn:hover {
-    background: rgba(0, 255, 65, 0.4);
-    box-shadow: 0 0 2vh #00ff41;
-    transform: scale(1.1);
-}
-
-.fullscreen-btn:active {
-    transform: scale(0.95);
-}
-
-.fullscreen-btn.fullscreen-active {
-    background: rgba(255, 0, 0, 0.2);
-    border-color: #ff0033;
-    color: #ff0033;
-}
-
-.fullscreen-btn.fullscreen-active:hover {
-    background: rgba(255, 0, 0, 0.4);
-    box-shadow: 0 0 2vh #ff0033;
-}
-
-.hud {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 8vh;
-    background: rgba(0, 34, 0, 0.9);
-    border-top: 0.3vh solid #00ff41;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 3vw;
-    z-index: 100;
-    box-shadow: 0 -0.5vh 2vh rgba(0, 255, 65, 0.3);
-}
-
-.hud-label {
-    color: #00ffff !important;
-    font-size: 1vh;
-    text-transform: uppercase;
-    letter-spacing: 0.1vw;
-}
-
-.hud-value {
-    color: #00ff41 !important;
-    font-size: 1.3vh;
-    font-weight: bold;
-    text-shadow: 0 0 1vh #00ff41 !important;
-}
-
-.health-bar-container {
-    width: 20vw;
-    height: 2vh;
-    background: rgba(255, 255, 255, 0.1);
-    border: 0.2vh solid #00ff41 !important;
-    border-radius: 1vh;
-    overflow: hidden;
-    position: relative;
-}
-
-.health-bar {
-    height: 100%;
-    background: linear-gradient(90deg, #00ff41, #00ffff) !important;
-    border-radius: 0.8vh;
-    transition: width 0.3s ease;
-    box-shadow: 0 0 1vh #00ff41 !important;
-}
-
-.health-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #ffffff !important;
-    font-size: 1vh;
-    font-weight: bold;
-    text-shadow: 0 0 0.5vh #000 !important;
-}
-
-.charge-indicator {
-    display: flex;
-    align-items: center;
-    gap: 1vw;
-}
-
-.charge-bar-container {
-    width: 15vw;
-    height: 1.5vh;
-    background: rgba(255, 255, 255, 0.1);
-    border: 0.2vh solid #00ff41 !important;
-    border-radius: 0.8vh;
-    overflow: hidden;
-}
-
-.charge-bar {
-    height: 100%;
-    background: linear-gradient(90deg, #00ffff, #00ccff) !important;
-    border-radius: 0.6vh;
-    transition: width 0.1s ease;
-    box-shadow: 0 0 1vh #00ccff !important;
-}
-
-.fullscreen-btn {
-    background: rgba(0, 255, 65, 0.2) !important;
-    border: 0.2vh solid #00ff41 !important; 
-    color: #00ff41 !important;
-    width: 3vw;
-    height: 3vw;
-    min-width: 30px;
-    min-height: 30px;
-    border-radius: 0.5vw;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5vh;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 1vh rgba(0, 255, 65, 0.3) !important;
-}
-
-.fullscreen-btn:hover {
-    background: rgba(0, 255, 65, 0.4) !important;
-    box-shadow: 0 0 2vh #00ff41 !important;
-    transform: scale(1.1);
-}
-
-.fullscreen-btn:active {
-    transform: scale(0.95);
-}
-
-.fullscreen-btn.fullscreen-active {
-    background: rgba(255, 0, 0, 0.2) !important;
-    border-color: #ff0033 !important;
-    color: #ff0033 !important;
-}
-.fullscreen-btn.fullscreen-active:hover {
-    background: rgba(255, 0, 0, 0.4) !important;
-    box-shadow: 0 0 2vh #ff0033 !important;
-}
-
-#playerNameDisplay {
-    color: #00ff41 !important;
-    text-shadow: 0 0 1vh #00ff41 !important;
-}
-
-.hud-section,
-.hud-item,
-.charge-level {
-    color: inherit !important;
-}
-
-.joystick-container {
-    position: absolute;
-    bottom: 10vh;
-    left: 3vw;
-    z-index: 50;
-    display: none; /* Oculto por defecto */
-}
-
-.joystick-base {
-    width: 15vw;
-    height: 15vw;
-    min-width: 80px;
-    min-height: 80px;
-    background: radial-gradient(circle, rgba(0, 255, 65, 0.3), rgba(0, 255, 65, 0.1));
-    border: 0.3vh solid #00ff41;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 2vh rgba(0, 255, 65, 0.5);
-}
-
-.joystick-handle {
-    width: 6vw;
-    height: 6vw;
-    min-width: 30px;
-    min-height: 30px;
-    background: radial-gradient(circle, #00ff41, #00cc00);
-    border: 0.2vh solid #00ff41;
-    border-radius: 50%;
-    transition: transform 0.1s ease;
-    box-shadow: 0 0 1vh #00ff41;
-    cursor: move;
-}
-
-.joystick-handle.active {
-    background: radial-gradient(circle, #ffff00, #ffcc00);
-    box-shadow: 0 0 2vh #ffff00;
-}
-
-.touch-controls {
-    position: absolute;
-    bottom: 10vh;
-    right: 3vw;
-    z-index: 50;
-    display: none;
-}
-
-.touch-shoot-area {
-    width: 15vw;
-    height: 15vw;
-    min-width: 80px;
-    min-height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.touch-shoot-button {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(255, 0, 255, 0.3), rgba(255, 0, 255, 0.1));
-    border: 0.3vh solid #ff00ff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 0 2vh rgba(255, 0, 255, 0.5);
-}
-
-.touch-shoot-button:active {
-    transform: scale(0.9);
-    background: radial-gradient(circle, rgba(255, 0, 255, 0.5), rgba(255, 0, 255, 0.2));
-    box-shadow: 0 0 3vh #ff00ff;
-}
-
-.touch-shoot-text {
-    color: #ffffff;
-    font-size: 1.2vh;
-    text-align: center;
-    text-shadow: 0 0 1vh #ff00ff;
-    pointer-events: none;
-}
-
-.touch-shoot-glow {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: radial-gradient(circle, transparent 30%, rgba(255, 0, 255, 0.3) 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.touch-shoot-button:active .touch-shoot-glow {
-    opacity: 1;
-    animation: touchPulse 0.5s infinite alternate;
-}
-
-@keyframes touchPulse {
-    0% { transform: scale(1); opacity: 0.3; }
-    100% { transform: scale(1.1); opacity: 0.7; }
-}
-
-.mobile-controls-active .joystick-container,
-.mobile-controls-active .touch-controls {
-    display: block !important;
-}
-
-.pc-controls-active .joystick-container,
-.pc-controls-active .touch-controls {
-    display: none !important;
-}
-
-.mobile-controls-visible .joystick-container,
-.mobile-controls-visible .touch-controls {
-    display: block !important;
-}
-
-.pc-controls-visible .joystick-container,
-.pc-controls-visible .touch-controls {
-    display: none !important;
-}
-
 .control-options {
     display: flex;
     flex-direction: column;
@@ -1534,122 +1032,152 @@ html, body {
     transform: scale(1.05);
 }
 
-.joystick-container {
-    position: absolute;
-    bottom: 10vh;
-    left: 3vw;
-    z-index: 50;
-    display: none;
-}
-
-.joystick-base {
-    width: 15vw;
-    height: 15vw;
-    min-width: 80px;
-    min-height: 80px;
-    background: radial-gradient(circle, rgba(0, 255, 65, 0.3), rgba(0, 255, 65, 0.1));
-    border: 0.3vh solid #00ff41;
-    border-radius: 50%;
+.fullscreen-button-container {
     display: flex;
     align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 2vh rgba(0, 255, 65, 0.5);
 }
 
-.joystick-handle {
-    width: 6vw;
-    height: 6vw;
+.fullscreen-btn {
+    background: rgba(0, 255, 65, 0.2);
+    border: 0.2vh solid #00ff41;
+    color: #00ff41;
+    width: 3vw;
+    height: 3vw;
     min-width: 30px;
     min-height: 30px;
-    background: radial-gradient(circle, #00ff41, #00cc00);
-    border: 0.2vh solid #00ff41;
-    border-radius: 50%;
-    transition: transform 0.1s ease;
-    box-shadow: 0 0 1vh #00ff41;
-    cursor: move;
-}
-
-.joystick-handle.active {
-    background: radial-gradient(circle, #ffff00, #ffcc00);
-    box-shadow: 0 0 2vh #ffff00;
-}
-
-.touch-controls {
-    position: absolute;
-    bottom: 10vh;
-    right: 3vw;
-    z-index: 50;
-    display: none;
-}
-
-.touch-shoot-area {
-    width: 15vw;
-    height: 15vw;
-    min-width: 80px;
-    min-height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.touch-shoot-button {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(255, 0, 255, 0.3), rgba(255, 0, 255, 0.1));
-    border: 0.3vh solid #ff00ff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-radius: 0.5vw;
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 0 2vh rgba(255, 0, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5vh;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 1vh rgba(0, 255, 65, 0.3);
 }
 
-.touch-shoot-button:active {
-    transform: scale(0.9);
-    background: radial-gradient(circle, rgba(255, 0, 255, 0.5), rgba(255, 0, 255, 0.2));
-    box-shadow: 0 0 3vh #ff00ff;
+.fullscreen-btn:hover {
+    background: rgba(0, 255, 65, 0.4);
+    box-shadow: 0 0 2vh #00ff41;
+    transform: scale(1.1);
 }
 
-.touch-shoot-text {
-    color: #ffffff;
-    font-size: 1.2vh;
-    text-align: center;
-    text-shadow: 0 0 1vh #ff00ff;
-    pointer-events: none;
+.fullscreen-btn:active {
+    transform: scale(0.95);
 }
 
-.touch-shoot-glow {
-    position: absolute;
+.fullscreen-btn.fullscreen-active {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: #ff0033;
+    color: #ff0033;
+}
+
+.fullscreen-btn.fullscreen-active:hover {
+    background: rgba(255, 0, 0, 0.4);
+    box-shadow: 0 0 2vh #ff0033;
+}
+
+.rotate-alert {
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    border-radius: 50%;
-    background: radial-gradient(circle, transparent 30%, rgba(255, 0, 255, 0.3) 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.touch-shoot-button:active .touch-shoot-glow {
-    opacity: 1;
-    animation: touchPulse 0.5s infinite alternate;
-}
-
-@keyframes touchPulse {
-    0% { transform: scale(1); opacity: 0.3; }
-    100% { transform: scale(1.1); opacity: 0.7; }
-}
-
-.mobile-controls-visible .joystick-container,
-.mobile-controls-visible .touch-controls {
-    display: block;
-}
-
-.pc-controls-visible .joystick-container,
-.pc-controls-visible .touch-controls {
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
     display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.rotate-message {
+    text-align: center;
+    color: #00ff41;
+    padding: 4vh;
+    background: rgba(0, 34, 0, 0.9);
+    border: 0.3vh solid #00ff41;
+    border-radius: 1vw;
+    box-shadow: 0 0 4vh rgba(0, 255, 65, 0.5);
+}
+
+.rotate-icon {
+    font-size: 8vh;
+    margin-bottom: 2vh;
+    animation: rotatePhone 2s infinite ease-in-out;
+}
+
+.rotate-message p {
+    margin: 1vh 0;
+    font-size: 1.8vh;
+    text-shadow: 0 0 1vh #00ff41;
+}
+
+@keyframes rotatePhone {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(90deg); }
+    50% { transform: rotate(0deg); }
+    75% { transform: rotate(-90deg); }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) and (orientation: portrait) {
+    .rotate-alert:not(.hidden) {
+        display: flex !important;
+    }
+    
+    .hud {
+        height: 12vh;
+        padding: 1vh 2vw;
+    }
+    
+    .fullscreen-btn {
+        width: 6vw;
+        height: 6vw;
+        min-width: 40px;
+        min-height: 40px;
+        font-size: 2vh;
+    }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+    .rotate-alert {
+        display: none !important;
+    }
+    
+    .hud {
+        height: 10vh;
+        padding: 0.5vh 2vw;
+    }
+    
+    .hud-label {
+        font-size: 0.9vh;
+    }
+    
+    .hud-value {
+        font-size: 1.1vh;
+    }
+}
+
+@media (min-width: 769px) {
+    .rotate-alert {
+        display: none !important;
+    }
+}
+
+/* PREVENIR COMPORTAMIENTOS NO DESEADOS */
+html, body {
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overflow: hidden;
+}
+
+* {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
 }
