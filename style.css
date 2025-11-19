@@ -623,6 +623,13 @@ body {
     display: none; /* Oculto por defecto */
 }
 
+.show-joystick .joystick-container,
+.show-joystick .touch-controls {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
 .joystick-base {
     width: 15vw;
     height: 15vw;

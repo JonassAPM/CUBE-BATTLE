@@ -94,6 +94,25 @@ function showConfigScreen() {
     configScreen.classList.remove('hidden');
 }
 
+// FUNCIÓN DE DEBUG PARA VERIFICAR ELEMENTOS
+function debugElements() {
+    console.log('🔍 DEBUG ELEMENTOS:');
+    console.log('- joystickContainer:', document.getElementById('joystickContainer'));
+    console.log('- joystickHandle:', document.getElementById('joystickHandle'));
+    console.log('- touchControls:', document.getElementById('touchControls'));
+    console.log('- gameContainer:', document.getElementById('gameContainer'));
+    console.log('- Control mode:', controlMode);
+    
+    const joystick = document.getElementById('joystickContainer');
+    if (joystick) {
+        console.log('- Joystick computed display:', window.getComputedStyle(joystick).display);
+        console.log('- Joystick classes:', joystick.className);
+    }
+}
+
+// Ejecutar debug después de iniciar el juego
+setTimeout(debugElements, 1000);
+
 function startGame() {
     const controlsScreen = document.getElementById('controlsScreen');
     const gameContainer = document.getElementById('gameContainer');
@@ -104,15 +123,39 @@ function startGame() {
     console.log('🎮 Iniciando juego con modo:', controlMode);
     
     // LIMPIAR CLASES ANTERIORES
-    gameContainer.classList.remove('mobile-controls-active', 'pc-controls-active');
+    gameContainer.classList.remove('show-joystick');
     
-    // APLICAR MODO DE CONTROLES
+    // FORZAR JOYSTICK SI ES MÓVIL
     if (controlMode === 'mobile') {
-        gameContainer.classList.add('mobile-controls-active');
-        console.log('✅ CONTROLES MÓVILES ACTIVADOS');
-    } else {
-        gameContainer.classList.add('pc-controls-active');
-        console.log('🎮 Controles PC activados');
+        console.log('📱 ACTIVANDO JOYSTICK MANUALMENTE');
+        gameContainer.classList.add('show-joystick');
+        
+        // Forzar visualización inmediata
+        const joystick = document.getElementById('joystickContainer');
+        console.log('🔍 Estado del joystick al iniciar juego:', {
+            joystickExists: !!joystick,
+            joystickDisplay: joystick ? window.getComputedStyle(joystick).display : 'no existe',
+            controlMode: controlMode
+        });
+
+        this.applySelectedColor();
+        this.updatePlayerName();
+        this.init()
+        const touchControls = document.getElementById('touchControls');
+        
+        if (joystick) {
+            joystick.style.display = 'block';
+            joystick.style.visibility = 'visible';
+            joystick.style.opacity = '1';
+            console.log('✅ Joystick forzado a visible');
+        }
+        
+        if (touchControls) {
+            touchControls.style.display = 'block';
+            touchControls.style.visibility = 'visible';
+            touchControls.style.opacity = '1';
+            console.log('✅ Touch controls forzados a visible');
+        }
     }
     
     // INDICAR QUE EL JUEGO INICIÓ
