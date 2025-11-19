@@ -119,6 +119,15 @@ class CubeBattleGame {
         this.calibratedGamma = 0;
         this.calibratedBeta = 0;
         this.isCalibrated = false;
+
+        this.accumulatedX = 0;
+        this.accumulatedY = 0;
+
+        this.lastGyroGamma = 0;
+        this.lastGyroBeta = 0;
+        
+        this.calibratedGamma = 0;
+        this.calibratedBeta = 0;
         
         this.keys = {
             w: false,
@@ -297,10 +306,14 @@ class CubeBattleGame {
                 this.gyroAlpha = e.alpha || 0;
                 this.gyroBeta = e.beta || 0;
                 this.gyroGamma = e.gamma || 0;
-                
+
                 if (!this.isCalibrated) {
                     this.calibratedGamma = this.gyroGamma;
                     this.calibratedBeta = this.gyroBeta;
+                    
+                    this.lastGyroGamma = this.gyroGamma;
+                    this.lastGyroBeta = this.gyroBeta;
+                    
                     this.isCalibrated = true;
                 }
                 
@@ -632,24 +645,38 @@ class CubeBattleGame {
 
     moveWithGyroscope() {
         if (!this.isCalibrated) return;
+        
+        let currentGamma = this.gyroGamma;
+        let currentBeta = this.gyroBeta;
 
-        let diffX = this.gyroBeta - this.calibratedBeta;
-        let diffY = this.gyroGamma - this.calibratedGamma; 
+        let deltaGamma = this.getShortestAngleDiff(currentGamma, this.lastGyroGamma);
+        let deltaBeta = this.getShortestAngleDiff(currentBeta, this.lastGyroBeta);
+
+        this.accumulatedX += deltaGamma; 
+        this.accumulatedY += deltaBeta;
+
+        const controlRange = 45;
+        let controlX = this.accumulatedX;
+        let controlY = this.accumulatedY;
+
+        controlX = Math.max(-controlRange, Math.min(controlRange, controlX));
+        controlY = Math.max(-controlRange, Math.min(controlRange, controlY));
+
 
         this.velocity.x = 0;
         this.velocity.y = 0;
 
-        const movementLimit = 45;
         const maxSpeed = 15;
         const reducedSpeed = this.speed * 0.75; 
+
+        this.velocity.x = (controlX / controlRange) * reducedSpeed;
+        this.tilt = controlX > 0 ? 3 : (controlX < 0 ? -3 : 0);
         
-        const limitedGamma = Math.sign(diffX) * Math.min(Math.abs(diffX), movementLimit);
-        this.velocity.x = (limitedGamma / movementLimit) * reducedSpeed;
-        this.tilt = limitedGamma > 0 ? 3 : (limitedGamma < 0 ? -3 : 0);
+        this.velocity.y = (-controlY / controlRange) * reducedSpeed; 
         
-        const limitedBeta = Math.sign(diffY) * Math.min(Math.abs(diffY), movementLimit);
-        this.velocity.y = (-limitedBeta / movementLimit) * reducedSpeed; 
-        
+        this.lastGyroGamma = currentGamma;
+        this.lastGyroBeta = currentBeta;
+
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
 
