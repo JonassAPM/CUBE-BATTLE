@@ -109,6 +109,14 @@ class CubeBattleGame {
         this.lastTouchTime = 0;
 
         this.gyroEnabled = false;
+        this.accelX = 0;
+        this.accelY = 0;
+
+        this.baseAccelX = 0;
+        this.baseAccelY = 0;
+        this.isCalibrated = false;
+
+        this.gyroEnabled = false;
         this.gyroAlpha = 0;
         this.gyroBeta = 0;
         this.gyroGamma = 0;
@@ -293,53 +301,54 @@ class CubeBattleGame {
     }
 
     initGyroscope() {
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', (e) => {
-                const currentTime = Date.now();
-                
-                if (currentTime - this.lastGyroUpdate < this.gyroUpdateRate) {
-                    return;
-                }
-                
-                this.lastGyroUpdate = currentTime;
-                
-                this.gyroAlpha = e.alpha || 0;
-                this.gyroBeta = e.beta || 0;
-                this.gyroGamma = e.gamma || 0;
+        // Usamos devicemotion (Acelerómetro) porque no sufre de saltos de ángulos
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', (e) => {
+                // accelerationIncludingGravity detecta hacia dónde tira la gravedad
+                const acc = e.accelerationIncludingGravity;
+                if (!acc) return;
 
-                if (!this.isCalibrated) {
-                    this.calibratedGamma = this.gyroGamma;
-                    this.calibratedBeta = this.gyroBeta;
-                    
-                    this.lastGyroGamma = this.gyroGamma;
-                    this.lastGyroBeta = this.gyroBeta;
-                    
+                // Suavizado simple para evitar temblores (filtro de paso bajo)
+                // En modo PAISAJE (Landscape):
+                // El eje Y del dispositivo es la inclinación Izquierda/Derecha
+                // El eje X del dispositivo es la inclinación Arriba/Abajo
+                const currentX = acc.x || 0;
+                const currentY = acc.y || 0;
+
+                this.accelX = currentX;
+                this.accelY = currentY;
+
+                // Calibrar solo la primera vez que recibimos datos válidos
+                if (!this.isCalibrated && (currentX !== 0 || currentY !== 0)) {
+                    this.baseAccelX = currentX;
+                    this.baseAccelY = currentY;
                     this.isCalibrated = true;
                 }
                 
                 this.gyroEnabled = true;
             });
             
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // Permisos para iOS 13+ (requiere gesto de usuario, igual que antes pero para Motion)
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
                 const startButton = document.querySelector('.start-button');
-                const originalOnClick = startButton.onclick;
+                // Guardamos la función original si existe
+                const originalOnClick = startButton ? startButton.onclick : null;
                 
-                startButton.onclick = () => {
-                    DeviceOrientationEvent.requestPermission()
-                        .then(permissionState => {
-                            if (permissionState === 'granted') {
-                                this.gyroEnabled = true;
-                                if (originalOnClick) {
+                if (startButton) {
+                    startButton.onclick = () => {
+                        DeviceMotionEvent.requestPermission()
+                            .then(permissionState => {
+                                if (permissionState === 'granted') {
+                                    this.gyroEnabled = true;
+                                }
+                                // Ejecutar la función original de startButton (startGame)
+                                if (typeof originalOnClick === 'function') {
                                     originalOnClick();
                                 }
-                            } else {
-                                if (originalOnClick) {
-                                    originalOnClick();
-                                }
-                            }
-                        })
-                        .catch(console.error);
-                };
+                            })
+                            .catch(console.error);
+                    };
+                }
             }
         }
     }
@@ -646,40 +655,45 @@ class CubeBattleGame {
     moveWithGyroscope() {
         if (!this.isCalibrated) return;
         
-        let currentGamma = this.gyroGamma;
-        let currentBeta = this.gyroBeta;
-
-        let deltaGamma = this.getShortestAngleDiff(currentGamma, this.lastGyroGamma);
-        let deltaBeta = this.getShortestAngleDiff(currentBeta, this.lastGyroBeta);
-
-        this.accumulatedX += deltaGamma; 
-        this.accumulatedY += deltaBeta;
-
-        const controlRange = 45;
-        let controlX = this.accumulatedX;
-        let controlY = this.accumulatedY;
-
-        controlX = Math.max(-controlRange, Math.min(controlRange, controlX));
-        controlY = Math.max(-controlRange, Math.min(controlRange, controlY));
-
-
+        // Reiniciar velocidad base
         this.velocity.x = 0;
         this.velocity.y = 0;
 
+        // Configuración de sensibilidad
         const maxSpeed = 15;
         const reducedSpeed = this.speed * 0.75; 
+        const sensitivity = 5.0; // Cuánto hay que inclinar para máxima velocidad (aprox 45 grados)
 
-        this.velocity.x = (controlX / controlRange) * reducedSpeed;
-        this.tilt = controlX > 0 ? 3 : (controlX < 0 ? -3 : 0);
+        // EN MODO PAISAJE (Landscape):
+        // - Inclinar izquierda/derecha afecta al Eje Y del dispositivo (accelY).
+        // - Inclinar adelante/atrás afecta al Eje X del dispositivo (accelX).
         
-        this.velocity.y = (-controlY / controlRange) * reducedSpeed; 
-        
-        this.lastGyroGamma = currentGamma;
-        this.lastGyroBeta = currentBeta;
+        // Calcular diferencia desde la posición calibrada
+        // Nota: Los signos (+/-) pueden variar según navegador/dispositivo,
+        // ajusta estos signos menos (-) si los controles están invertidos.
+        let diffX = this.accelY - this.baseAccelY; // Controla movimiento Horizontal en pantalla
+        let diffY = this.accelX - this.baseAccelX; // Controla movimiento Vertical en pantalla
 
+        // Movimiento Horizontal
+        // Limitamos la diferencia para que no exceda la sensibilidad
+        const inputX = Math.max(-sensitivity, Math.min(sensitivity, diffX));
+        // Mapeamos la entrada (-5 a 5) a la velocidad (-max a max)
+        // Multiplicamos por -1 si va al revés
+        this.velocity.x = -(inputX / sensitivity) * reducedSpeed;
+        
+        // Efecto de inclinación visual del cubo
+        this.tilt = inputX > 0.5 ? -3 : (inputX < -0.5 ? 3 : 0);
+
+        // Movimiento Vertical
+        const inputY = Math.max(-sensitivity, Math.min(sensitivity, diffY));
+        // Multiplicamos por -1 si va al revés (generalmente X positivo es inclinar hacia ti)
+        this.velocity.y = -(inputY / sensitivity) * reducedSpeed; 
+        
+        // Límites finales de seguridad
         this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
         this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
 
+        // Override con teclado
         if (this.keys.a || this.keys.ArrowLeft) {
             this.velocity.x = -this.speed;
             this.tilt = -3;
