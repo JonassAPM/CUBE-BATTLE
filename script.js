@@ -108,6 +108,14 @@ class CubeBattleGame {
         this.isTouchCharging = false;
         this.lastTouchTime = 0;
 
+        this.joystickActive = false;
+        this.joystickHandle = null;
+        this.joystickBase = null;
+        this.joystickStartX = 0;
+        this.joystickStartY = 0;
+        this.joystickMaxDistance = 0;
+        this.joystickDirection = { x: 0, y: 0 };
+
         this.keys = {
             w: false,
             a: false,
@@ -121,6 +129,10 @@ class CubeBattleGame {
             Enter: false
         };
         
+        this.applySelectedColor();
+        this.updatePlayerName();
+        this.init();
+
         this.applySelectedColor();
         this.updatePlayerName();
         this.init();
@@ -173,10 +185,98 @@ class CubeBattleGame {
         
         if (this.isTouchDevice) {
             this.initTouchControls();
+            this.initJoystick();
         }
         
         this.gameLoop();
         this.updateDisplays();
+    }
+
+    initJoystick() {
+        this.joystickHandle = document.getElementById('joystickHandle');
+        this.joystickBase = document.querySelector('.joystick-base');
+        
+        if (!this.joystickHandle || !this.joystickBase) return;
+        
+        const baseRect = this.joystickBase.getBoundingClientRect();
+        this.joystickStartX = baseRect.left + baseRect.width / 2;
+        this.joystickStartY = baseRect.top + baseRect.height / 2;
+        this.joystickMaxDistance = baseRect.width / 3;
+
+        this.joystickHandle.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.joystickActive = true;
+            this.joystickHandle.classList.add('active');
+            this.updateJoystick(e.touches[0]);
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (this.joystickActive) {
+                e.preventDefault();
+                this.updateJoystick(e.touches[0]);
+            }
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            if (this.joystickActive) {
+                e.preventDefault();
+                this.resetJoystick();
+            }
+        });
+        
+        document.addEventListener('touchcancel', (e) => {
+            if (this.joystickActive) {
+                e.preventDefault();
+                this.resetJoystick();
+            }
+        });
+
+        this.joystickHandle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.joystickActive = true;
+            this.joystickHandle.classList.add('active');
+            this.updateJoystick(e);
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (this.joystickActive) {
+                e.preventDefault();
+                this.updateJoystick(e);
+            }
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+            if (this.joystickActive) {
+                e.preventDefault();
+                this.resetJoystick();
+            }
+        });
+    }
+
+    updateJoystick(touch) {
+        if (!this.joystickActive) return;
+        
+        const currentX = touch.clientX;
+        const currentY = touch.clientY;
+        const deltaX = currentX - this.joystickStartX;
+        const deltaY = currentY - this.joystickStartY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const limitedDistance = Math.min(distance, this.joystickMaxDistance);
+        const angle = Math.atan2(deltaY, deltaX);
+        const limitedX = Math.cos(angle) * limitedDistance;
+        const limitedY = Math.sin(angle) * limitedDistance;
+
+        this.joystickHandle.style.transform = `translate(${limitedX}px, ${limitedY}px)`;
+        this.joystickDirection.x = limitedX / this.joystickMaxDistance;
+        this.joystickDirection.y = limitedY / this.joystickMaxDistance;
+    }
+    
+    resetJoystick() {
+        this.joystickActive = false;
+        this.joystickDirection.x = 0;
+        this.joystickDirection.y = 0;
+        this.joystickHandle.style.transform = 'translate(0, 0)';
+        this.joystickHandle.classList.remove('active');
     }
     
     initTouchControls() {
@@ -293,19 +393,34 @@ class CubeBattleGame {
         this.velocity.x = 0;
         this.velocity.y = 0;
         this.tilt = 0;
+
+        let keyboardActive = false;
         
         if (this.keys.a || this.keys.ArrowLeft) {
             this.velocity.x = -this.speed;
             this.tilt = -3;
+            keyboardActive = true;
         } else if (this.keys.d || this.keys.ArrowRight) {
             this.velocity.x = this.speed;
             this.tilt = 3;
+            keyboardActive = true;
         }
         
         if (this.keys.w || this.keys.ArrowUp) {
             this.velocity.y = -this.speed;
+            keyboardActive = true;
         } else if (this.keys.s || this.keys.ArrowDown) {
             this.velocity.y = this.speed;
+            keyboardActive = true;
+        }
+        
+        if (!keyboardActive && this.joystickActive && this.isTouchDevice) {
+            this.velocity.x = this.joystickDirection.x * this.speed;
+            this.velocity.y = this.joystickDirection.y * this.speed;
+            
+            if (Math.abs(this.joystickDirection.x) > 0.1) {
+                this.tilt = this.joystickDirection.x * 10;
+            }
         }
 
         const newX = this.position.x + this.velocity.x;
