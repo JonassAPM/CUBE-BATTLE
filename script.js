@@ -83,11 +83,12 @@ function selectControlMode(mode) {
     configScreen.classList.remove('hidden');
 }
 
-// DETECCIÓN AUTOMÁTICA
-if (isMobileDevice) {
-    const configScreen = document.getElementById('configScreen');
-    configScreen.classList.add('hidden');
-    showControlSelectScreen();
+function autoDetectControls() {
+    if (isMobileDevice) {
+        selectControlMode('mobile');
+    } else {
+        selectControlMode('pc');
+    }
 }
 
 function startGame() {
@@ -101,9 +102,16 @@ function startGame() {
     if (controlMode === 'mobile' || (controlMode === 'auto' && isMobileDevice)) {
         gameContainer.classList.add('mobile-controls-visible');
         gameContainer.classList.remove('pc-controls-visible');
+        console.log('Controles móviles activados');
     } else {
         gameContainer.classList.add('pc-controls-visible');
         gameContainer.classList.remove('mobile-controls-visible');
+        console.log('Controles PC activados');
+    }
+    
+    // INDICAR QUE EL JUEGO INICIÓ
+    if (window.rotationManager) {
+        window.rotationManager.setGameStarted();
     }
     
     new CubeBattleGame();
@@ -979,6 +987,8 @@ class RotationManager {
     constructor() {
         this.rotateAlert = document.getElementById('rotateAlert');
         this.controlSelectScreen = document.getElementById('controlSelectScreen');
+        this.gameStarted = false; // NUEVA VARIABLE
+        
         this.checkRotation();
         
         window.addEventListener('resize', () => this.checkRotation());
@@ -987,6 +997,11 @@ class RotationManager {
     
     checkRotation() {
         const isVertical = window.innerHeight > window.innerWidth;
+        
+        // SI EL JUEGO YA INICIÓ, NO HACER NADA
+        if (this.gameStarted) {
+            return;
+        }
         
         if (isVertical) {
             this.showRotationAlert();
@@ -1016,20 +1031,33 @@ class RotationManager {
     }
     
     showControlSelect() {
+        // SI EL JUEGO YA INICIÓ, NO MOSTRAR NADA
+        if (this.gameStarted) {
+            return;
+        }
+        
         if (this.controlSelectScreen) {
-            // MOSTRAR SOLO la selección de controles y OCULTAR todo lo demás
             document.getElementById('controlSelectScreen').classList.remove('hidden');
             document.getElementById('configScreen').classList.add('hidden');
             document.getElementById('controlsScreen').classList.add('hidden');
             document.getElementById('gameContainer').classList.add('hidden');
         }
     }
+
+    setGameStarted() {
+        this.gameStarted = true;
+        // OCULTAR TODAS LAS PANTALLAS DE MENÚ
+        document.getElementById('controlSelectScreen').classList.add('hidden');
+        document.getElementById('configScreen').classList.add('hidden');
+        document.getElementById('controlsScreen').classList.add('hidden');
+        document.getElementById('rotateAlert').style.display = 'none';
+    }
 }
 
 // INICIALIZACIÓN PRINCIPAL
 document.addEventListener('DOMContentLoaded', function() {
     const fullscreenManager = new FullscreenManager();
-    new RotationManager();
+    window.rotationManager = new RotationManager(); // GUARDAR REFERENCIA
     
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     if (fullscreenBtn) {
