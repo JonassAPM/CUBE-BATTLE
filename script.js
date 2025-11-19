@@ -72,7 +72,6 @@ function showControlSelectScreen() {
     detectDevice();
 }
 
-// SELECCIONAR MODO DE CONTROL
 function selectControlMode(mode) {
     controlMode = mode;
     console.log('Modo seleccionado:', mode);
@@ -993,7 +992,6 @@ class RotationManager {
             this.showRotationAlert();
         } else {
             this.hideRotationAlert();
-            // Cuando la pantalla está horizontal, mostrar selección de controles
             setTimeout(() => {
                 this.showControlSelect();
             }, 500);
@@ -1003,6 +1001,11 @@ class RotationManager {
     showRotationAlert() {
         if (this.rotateAlert) {
             this.rotateAlert.style.display = 'flex';
+            // OCULTAR todas las demás pantallas
+            document.getElementById('controlSelectScreen').classList.add('hidden');
+            document.getElementById('configScreen').classList.add('hidden');
+            document.getElementById('controlsScreen').classList.add('hidden');
+            document.getElementById('gameContainer').classList.add('hidden');
         }
     }
     
@@ -1014,7 +1017,11 @@ class RotationManager {
     
     showControlSelect() {
         if (this.controlSelectScreen) {
-            this.controlSelectScreen.classList.remove('hidden');
+            // MOSTRAR SOLO la selección de controles y OCULTAR todo lo demás
+            document.getElementById('controlSelectScreen').classList.remove('hidden');
+            document.getElementById('configScreen').classList.add('hidden');
+            document.getElementById('controlsScreen').classList.add('hidden');
+            document.getElementById('gameContainer').classList.add('hidden');
         }
     }
 }
@@ -1034,10 +1041,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Detectar dispositivo al cargar
     detectDevice();
-    
-    setTimeout(() => {
-        new RotationManager().checkRotation();
-    }, 100);
 });
 
 // PREVENIR ZOOM Y GESTOS NO DESEADOS
