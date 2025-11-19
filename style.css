@@ -1471,3 +1471,196 @@ html, body {
         display: block;
     }
 }
+
+.control-options {
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+    width: 100%;
+    max-width: 400px;
+    margin: 2vh 0;
+}
+
+.control-option {
+    display: flex;
+    align-items: center;
+    padding: 2vh;
+    background: rgba(0, 255, 65, 0.1);
+    border: 0.2vh solid #00ff41;
+    border-radius: 1vh;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    gap: 2vw;
+}
+
+.control-option:hover {
+    background: rgba(0, 255, 65, 0.2);
+    transform: scale(1.02);
+    box-shadow: 0 0 2vh #00ff41;
+}
+
+.control-icon {
+    font-size: 4vh;
+    width: 6vh;
+    text-align: center;
+}
+
+.control-text {
+    flex: 1;
+}
+
+.control-title {
+    color: #00ff41;
+    font-size: 1.8vh;
+    font-weight: bold;
+    margin-bottom: 0.5vh;
+}
+
+.control-desc {
+    color: #00ffff;
+    font-size: 1.2vh;
+    opacity: 0.8;
+}
+
+.auto-detect {
+    margin-top: 2vh;
+    text-align: center;
+}
+
+.auto-detect-btn {
+    background: rgba(255, 255, 0, 0.2);
+    border: 0.2vh solid #ffff00;
+    color: #ffff00;
+    padding: 1.5vh 3vw;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1.2vh;
+    cursor: pointer;
+    border-radius: 0.5vh;
+    transition: all 0.3s ease;
+}
+
+.auto-detect-btn:hover {
+    background: rgba(255, 255, 0, 0.4);
+    box-shadow: 0 0 2vh #ffff00;
+    transform: scale(1.05);
+}
+
+.joystick-container {
+    position: absolute;
+    bottom: 10vh;
+    left: 3vw;
+    z-index: 50;
+    display: none;
+}
+
+.joystick-base {
+    width: 15vw;
+    height: 15vw;
+    min-width: 80px;
+    min-height: 80px;
+    background: radial-gradient(circle, rgba(0, 255, 65, 0.3), rgba(0, 255, 65, 0.1));
+    border: 0.3vh solid #00ff41;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 2vh rgba(0, 255, 65, 0.5);
+}
+
+.joystick-handle {
+    width: 6vw;
+    height: 6vw;
+    min-width: 30px;
+    min-height: 30px;
+    background: radial-gradient(circle, #00ff41, #00cc00);
+    border: 0.2vh solid #00ff41;
+    border-radius: 50%;
+    transition: transform 0.1s ease;
+    box-shadow: 0 0 1vh #00ff41;
+    cursor: move;
+}
+
+.joystick-handle.active {
+    background: radial-gradient(circle, #ffff00, #ffcc00);
+    box-shadow: 0 0 2vh #ffff00;
+}
+
+.touch-controls {
+    position: absolute;
+    bottom: 10vh;
+    right: 3vw;
+    z-index: 50;
+    display: none;
+}
+
+.touch-shoot-area {
+    width: 15vw;
+    height: 15vw;
+    min-width: 80px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.touch-shoot-button {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255, 0, 255, 0.3), rgba(255, 0, 255, 0.1));
+    border: 0.3vh solid #ff00ff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 2vh rgba(255, 0, 255, 0.5);
+}
+
+.touch-shoot-button:active {
+    transform: scale(0.9);
+    background: radial-gradient(circle, rgba(255, 0, 255, 0.5), rgba(255, 0, 255, 0.2));
+    box-shadow: 0 0 3vh #ff00ff;
+}
+
+.touch-shoot-text {
+    color: #ffffff;
+    font-size: 1.2vh;
+    text-align: center;
+    text-shadow: 0 0 1vh #ff00ff;
+    pointer-events: none;
+}
+
+.touch-shoot-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle, transparent 30%, rgba(255, 0, 255, 0.3) 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.touch-shoot-button:active .touch-shoot-glow {
+    opacity: 1;
+    animation: touchPulse 0.5s infinite alternate;
+}
+
+@keyframes touchPulse {
+    0% { transform: scale(1); opacity: 0.3; }
+    100% { transform: scale(1.1); opacity: 0.7; }
+}
+
+.mobile-controls-visible .joystick-container,
+.mobile-controls-visible .touch-controls {
+    display: block;
+}
+
+.pc-controls-visible .joystick-container,
+.pc-controls-visible .touch-controls {
+    display: none;
+}

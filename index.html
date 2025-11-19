@@ -16,7 +16,46 @@
             <p>para una mejor experiencia</p>
         </div>
     </div>
-    <div id="configScreen" class="start-screen">
+
+    <!-- PRIMERA PANTALLA - SELECCIÓN DE CONTROLES -->
+    <div id="controlSelectScreen" class="start-screen">
+        <div class="terminal-window">
+            <div class="terminal-header">
+                <span class="terminal-title">SELECCION DE CONTROLES</span>
+            </div>
+            <div class="terminal-body">
+                <div class="scan-line"></div>
+                <h2 class="glitch-text" style="font-size: 2.5vh;">SELECCIONA MODO</h2>
+                
+                <div class="control-options">
+                    <div class="control-option" onclick="selectControlMode('pc')">
+                        <div class="control-icon">⌨️</div>
+                        <div class="control-text">
+                            <div class="control-title">MODO PC</div>
+                            <div class="control-desc">Teclado + Mouse</div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-option" onclick="selectControlMode('mobile')">
+                        <div class="control-icon">📱</div>
+                        <div class="control-text">
+                            <div class="control-title">MODO MÓVIL</div>
+                            <div class="control-desc">Joystick + Pantalla Táctil</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="auto-detect">
+                    <button class="auto-detect-btn" onclick="autoDetectControls()">
+                        🔍 DETECCIÓN AUTOMÁTICA
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEGUNDA PANTALLA - CONFIGURACIÓN -->
+    <div id="configScreen" class="start-screen hidden">
         <div class="terminal-window">
             <div class="terminal-header">
                 <span class="terminal-title">CONFIGURACION DEL SISTEMA</span>
@@ -71,6 +110,7 @@
         </div>
     </div>
 
+    <!-- TERCERA PANTALLA - CONTROLES -->
     <div id="controlsScreen" class="start-screen hidden">
         <div class="terminal-window">
             <div class="terminal-header">
@@ -138,6 +178,7 @@
         </div>
     </div>
 
+    <!-- CUARTA PANTALLA - JUEGO -->
     <div id="gameContainer" class="game-container hidden">
         <div id="cube" class="cyber-cube">
             <div class="cube-face front"></div>

@@ -1,5 +1,7 @@
 let selectedColor = 'green';
 let playerName = 'JUGADOR';
+let controlMode = 'auto'; // 'pc', 'mobile', 'auto'
+let isMobileDevice = false;
 
 const colorNames = {
     green: 'VERDE',
@@ -11,6 +13,14 @@ const colorNames = {
     pink: 'ROSA',
     orange: 'NARANJA'
 };
+
+// DETECCIÓN DE DISPOSITIVO
+function detectDevice() {
+    const userAgent = navigator.userAgent.toLowerCase();
+    isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+    console.log('Dispositivo detectado:', isMobileDevice ? 'Móvil' : 'PC');
+    return isMobileDevice;
+}
 
 function selectColor(color) {
     selectedColor = color;
@@ -50,6 +60,37 @@ function showConfigScreen() {
     configScreen.classList.remove('hidden');
 }
 
+// MOSTRAR MENÚ DE SELECCIÓN DE CONTROLES
+function showControlSelectScreen() {
+    const rotateAlert = document.getElementById('rotateAlert');
+    const controlSelectScreen = document.getElementById('controlSelectScreen');
+    
+    rotateAlert.classList.add('hidden');
+    controlSelectScreen.classList.remove('hidden');
+    
+    // Detectar dispositivo automáticamente
+    detectDevice();
+}
+
+// SELECCIONAR MODO DE CONTROL
+function selectControlMode(mode) {
+    controlMode = mode;
+    console.log('Modo seleccionado:', mode);
+    
+    const controlSelectScreen = document.getElementById('controlSelectScreen');
+    const configScreen = document.getElementById('configScreen');
+    
+    controlSelectScreen.classList.add('hidden');
+    configScreen.classList.remove('hidden');
+}
+
+// DETECCIÓN AUTOMÁTICA
+if (isMobileDevice) {
+    const configScreen = document.getElementById('configScreen');
+    configScreen.classList.add('hidden');
+    showControlSelectScreen();
+}
+
 function startGame() {
     const controlsScreen = document.getElementById('controlsScreen');
     const gameContainer = document.getElementById('gameContainer');
@@ -57,7 +98,131 @@ function startGame() {
     controlsScreen.classList.add('hidden');
     gameContainer.classList.remove('hidden');
     
+    // Aplicar clase según el modo de control
+    if (controlMode === 'mobile' || (controlMode === 'auto' && isMobileDevice)) {
+        gameContainer.classList.add('mobile-controls-visible');
+        gameContainer.classList.remove('pc-controls-visible');
+    } else {
+        gameContainer.classList.add('pc-controls-visible');
+        gameContainer.classList.remove('mobile-controls-visible');
+    }
+    
     new CubeBattleGame();
+}
+
+// CLASE JOYSTICK VIRTUAL
+class VirtualJoystick {
+    constructor(handleElement, baseElement) {
+        this.handle = handleElement;
+        this.base = baseElement;
+        this.active = false;
+        this.direction = { x: 0, y: 0 };
+        this.startX = 0;
+        this.startY = 0;
+        this.maxDistance = 0;
+        
+        this.init();
+    }
+    
+    init() {
+        if (!this.handle || !this.base) return;
+        
+        const baseRect = this.base.getBoundingClientRect();
+        this.startX = baseRect.left + baseRect.width / 2;
+        this.startY = baseRect.top + baseRect.height / 2;
+        this.maxDistance = baseRect.width / 3;
+        
+        // Eventos táctiles
+        this.handle.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.activate();
+            this.update(e.touches[0]);
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (this.active) {
+                e.preventDefault();
+                this.update(e.touches[0]);
+            }
+        });
+        
+        document.addEventListener('touchend', (e) => {
+            if (this.active) {
+                e.preventDefault();
+                this.deactivate();
+            }
+        });
+        
+        document.addEventListener('touchcancel', (e) => {
+            if (this.active) {
+                e.preventDefault();
+                this.deactivate();
+            }
+        });
+        
+        // Eventos de mouse para desarrollo
+        this.handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.activate();
+            this.update(e);
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (this.active) {
+                e.preventDefault();
+                this.update(e);
+            }
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+            if (this.active) {
+                e.preventDefault();
+                this.deactivate();
+            }
+        });
+    }
+    
+    activate() {
+        this.active = true;
+        this.handle.classList.add('active');
+    }
+    
+    deactivate() {
+        this.active = false;
+        this.direction.x = 0;
+        this.direction.y = 0;
+        this.handle.style.transform = 'translate(0, 0)';
+        this.handle.classList.remove('active');
+    }
+    
+    update(touch) {
+        if (!this.active) return;
+        
+        const currentX = touch.clientX;
+        const currentY = touch.clientY;
+        
+        const deltaX = currentX - this.startX;
+        const deltaY = currentY - this.startY;
+        
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const limitedDistance = Math.min(distance, this.maxDistance);
+        
+        const angle = Math.atan2(deltaY, deltaX);
+        const limitedX = Math.cos(angle) * limitedDistance;
+        const limitedY = Math.sin(angle) * limitedDistance;
+        
+        this.handle.style.transform = `translate(${limitedX}px, ${limitedY}px)`;
+        this.direction.x = limitedX / this.maxDistance;
+        this.direction.y = limitedY / this.maxDistance;
+    }
+    
+    getDirection() {
+        return this.direction;
+    }
+    
+    isActive() {
+        return this.active;
+    }
 }
 
 class CubeBattleGame {
@@ -108,13 +273,9 @@ class CubeBattleGame {
         this.isTouchCharging = false;
         this.lastTouchTime = 0;
 
-        this.joystickActive = false;
-        this.joystickHandle = null;
-        this.joystickBase = null;
-        this.joystickStartX = 0;
-        this.joystickStartY = 0;
-        this.joystickMaxDistance = 0;
-        this.joystickDirection = { x: 0, y: 0 };
+        // JOYSTICK
+        this.joystick = null;
+        this.usingMobileControls = controlMode === 'mobile' || (controlMode === 'auto' && isMobileDevice);
 
         this.keys = {
             w: false,
@@ -129,10 +290,6 @@ class CubeBattleGame {
             Enter: false
         };
         
-        this.applySelectedColor();
-        this.updatePlayerName();
-        this.init();
-
         this.applySelectedColor();
         this.updatePlayerName();
         this.init();
@@ -183,100 +340,30 @@ class CubeBattleGame {
         document.addEventListener('keyup', (e) => this.handleKeyUp(e));
         window.addEventListener('resize', () => this.handleResize());
         
+        // INICIALIZAR JOYSTICK SOLO SI ES MÓVIL
+        if (this.usingMobileControls) {
+            this.initJoystick();
+            console.log('Joystick inicializado para modo móvil');
+        }
+        
         if (this.isTouchDevice) {
             this.initTouchControls();
-            this.initJoystick();
         }
         
         this.gameLoop();
         this.updateDisplays();
     }
-
-    initJoystick() {
-        this.joystickHandle = document.getElementById('joystickHandle');
-        this.joystickBase = document.querySelector('.joystick-base');
-        
-        if (!this.joystickHandle || !this.joystickBase) return;
-        
-        const baseRect = this.joystickBase.getBoundingClientRect();
-        this.joystickStartX = baseRect.left + baseRect.width / 2;
-        this.joystickStartY = baseRect.top + baseRect.height / 2;
-        this.joystickMaxDistance = baseRect.width / 3;
-
-        this.joystickHandle.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.joystickActive = true;
-            this.joystickHandle.classList.add('active');
-            this.updateJoystick(e.touches[0]);
-        });
-        
-        document.addEventListener('touchmove', (e) => {
-            if (this.joystickActive) {
-                e.preventDefault();
-                this.updateJoystick(e.touches[0]);
-            }
-        });
-        
-        document.addEventListener('touchend', (e) => {
-            if (this.joystickActive) {
-                e.preventDefault();
-                this.resetJoystick();
-            }
-        });
-        
-        document.addEventListener('touchcancel', (e) => {
-            if (this.joystickActive) {
-                e.preventDefault();
-                this.resetJoystick();
-            }
-        });
-
-        this.joystickHandle.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            this.joystickActive = true;
-            this.joystickHandle.classList.add('active');
-            this.updateJoystick(e);
-        });
-        
-        document.addEventListener('mousemove', (e) => {
-            if (this.joystickActive) {
-                e.preventDefault();
-                this.updateJoystick(e);
-            }
-        });
-        
-        document.addEventListener('mouseup', (e) => {
-            if (this.joystickActive) {
-                e.preventDefault();
-                this.resetJoystick();
-            }
-        });
-    }
-
-    updateJoystick(touch) {
-        if (!this.joystickActive) return;
-        
-        const currentX = touch.clientX;
-        const currentY = touch.clientY;
-        const deltaX = currentX - this.joystickStartX;
-        const deltaY = currentY - this.joystickStartY;
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        const limitedDistance = Math.min(distance, this.joystickMaxDistance);
-        const angle = Math.atan2(deltaY, deltaX);
-        const limitedX = Math.cos(angle) * limitedDistance;
-        const limitedY = Math.sin(angle) * limitedDistance;
-
-        this.joystickHandle.style.transform = `translate(${limitedX}px, ${limitedY}px)`;
-        this.joystickDirection.x = limitedX / this.joystickMaxDistance;
-        this.joystickDirection.y = limitedY / this.joystickMaxDistance;
-    }
     
-    resetJoystick() {
-        this.joystickActive = false;
-        this.joystickDirection.x = 0;
-        this.joystickDirection.y = 0;
-        this.joystickHandle.style.transform = 'translate(0, 0)';
-        this.joystickHandle.classList.remove('active');
+    initJoystick() {
+        const handle = document.getElementById('joystickHandle');
+        const base = document.querySelector('.joystick-base');
+        
+        if (handle && base) {
+            this.joystick = new VirtualJoystick(handle, base);
+            console.log('Joystick virtual creado exitosamente');
+        } else {
+            console.warn('No se pudo crear el joystick: elementos no encontrados');
+        }
     }
     
     initTouchControls() {
@@ -393,7 +480,8 @@ class CubeBattleGame {
         this.velocity.x = 0;
         this.velocity.y = 0;
         this.tilt = 0;
-
+        
+        // PRIORIDAD: Controles de teclado
         let keyboardActive = false;
         
         if (this.keys.a || this.keys.ArrowLeft) {
@@ -414,12 +502,15 @@ class CubeBattleGame {
             keyboardActive = true;
         }
         
-        if (!keyboardActive && this.joystickActive && this.isTouchDevice) {
-            this.velocity.x = this.joystickDirection.x * this.speed;
-            this.velocity.y = this.joystickDirection.y * this.speed;
+        // SI NO HAY TECLADO ACTIVO Y ESTAMOS EN MÓVIL, USAR JOYSTICK
+        if (!keyboardActive && this.usingMobileControls && this.joystick && this.joystick.isActive()) {
+            const direction = this.joystick.getDirection();
+            this.velocity.x = direction.x * this.speed;
+            this.velocity.y = direction.y * this.speed;
             
-            if (Math.abs(this.joystickDirection.x) > 0.1) {
-                this.tilt = this.joystickDirection.x * 10;
+            // Inclinación visual basada en dirección X
+            if (Math.abs(direction.x) > 0.1) {
+                this.tilt = direction.x * 10;
             }
         }
 
@@ -888,6 +979,7 @@ class FullscreenManager {
 class RotationManager {
     constructor() {
         this.rotateAlert = document.getElementById('rotateAlert');
+        this.controlSelectScreen = document.getElementById('controlSelectScreen');
         this.checkRotation();
         
         window.addEventListener('resize', () => this.checkRotation());
@@ -901,6 +993,10 @@ class RotationManager {
             this.showRotationAlert();
         } else {
             this.hideRotationAlert();
+            // Cuando la pantalla está horizontal, mostrar selección de controles
+            setTimeout(() => {
+                this.showControlSelect();
+            }, 500);
         }
     }
     
@@ -915,11 +1011,19 @@ class RotationManager {
             this.rotateAlert.style.display = 'none';
         }
     }
+    
+    showControlSelect() {
+        if (this.controlSelectScreen) {
+            this.controlSelectScreen.classList.remove('hidden');
+        }
+    }
 }
 
+// INICIALIZACIÓN PRINCIPAL
 document.addEventListener('DOMContentLoaded', function() {
     const fullscreenManager = new FullscreenManager();
     new RotationManager();
+    
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     if (fullscreenBtn) {
         fullscreenBtn.addEventListener('touchend', (e) => {
@@ -928,11 +1032,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Detectar dispositivo al cargar
+    detectDevice();
+    
     setTimeout(() => {
         new RotationManager().checkRotation();
     }, 100);
 });
 
+// PREVENIR ZOOM Y GESTOS NO DESEADOS
 document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=')) {
