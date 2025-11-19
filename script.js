@@ -642,18 +642,6 @@ class CubeBattleGame {
         const movementLimit = 45;
         const maxSpeed = 15;
         const reducedSpeed = this.speed * 0.75; 
-
-        if (diffX > 180) {
-            diffX -= 360;
-        } else if (diffX < -180) {
-            diffX += 360;
-        }
-
-        if (diffY > 180) {
-            diffY -= 360;
-        } else if (diffY < -180) {
-            diffY += 360;
-        }
         
         const limitedGamma = Math.sign(diffX) * Math.min(Math.abs(diffX), movementLimit);
         this.velocity.x = (limitedGamma / movementLimit) * reducedSpeed;
