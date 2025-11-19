@@ -1,3 +1,26 @@
+// Clase para filtrado de señal del giroscopio
+class MovingAverageFilter {
+    constructor(windowSize) {
+        this.windowSize = windowSize;
+        this.values = [];
+    }
+    
+    add(value) {
+        this.values.push(value);
+        if (this.values.length > this.windowSize) {
+            this.values.shift();
+        }
+        
+        // Calcular promedio
+        const sum = this.values.reduce((a, b) => a + b, 0);
+        return sum / this.values.length;
+    }
+    
+    reset() {
+        this.values = [];
+    }
+}
+
 let selectedColor = 'green';
 let playerName = 'JUGADOR';
 
@@ -57,7 +80,11 @@ function startGame() {
     controlsScreen.classList.add('hidden');
     gameContainer.classList.remove('hidden');
     
-    new CubeBattleGame();
+    const game = new CubeBattleGame();
+    window.cubeBattleGameInstance = game;
+    
+    // Agregar botón de recalibración después de iniciar el juego
+    setTimeout(addRecalibrateButton, 100);
 }
 
 class CubeBattleGame {
@@ -108,35 +135,25 @@ class CubeBattleGame {
         this.isTouchCharging = false;
         this.lastTouchTime = 0;
 
+        // NUEVO SISTEMA DE GIROSCOPIO MEJORADO
         this.gyroEnabled = false;
-        this.accelX = 0;
-        this.accelY = 0;
-
-        this.baseAccelX = 0;
-        this.baseAccelY = 0;
-        this.isCalibrated = false;
-
-        this.gyroEnabled = false;
-        this.gyroAlpha = 0;
-        this.gyroBeta = 0;
-        this.gyroGamma = 0;
-        this.gyroSensitivity = 0.2;
-        this.lastGyroUpdate = 0;
-        this.gyroUpdateRate = 16;
+        this.gyroGamma = 0;    // Inclinación izquierda/derecha
+        this.gyroBeta = 0;     // Inclinación adelante/atrás
+        this.gyroAlpha = 0;    // Rotación (no la usaremos mucho)
         
+        // Configuración de sensibilidad
+        this.gyroSensitivity = 0.8;
+        this.deadZone = 5;     // Zona muerta para evitar drift
+        
+        // Filtros para suavizar el movimiento
+        this.gammaFilter = new MovingAverageFilter(5);
+        this.betaFilter = new MovingAverageFilter(5);
+        
+        // Calibración
         this.calibratedGamma = 0;
         this.calibratedBeta = 0;
         this.isCalibrated = false;
 
-        this.accumulatedX = 0;
-        this.accumulatedY = 0;
-
-        this.lastGyroGamma = 0;
-        this.lastGyroBeta = 0;
-        
-        this.calibratedGamma = 0;
-        this.calibratedBeta = 0;
-        
         this.keys = {
             w: false,
             a: false,
@@ -202,12 +219,70 @@ class CubeBattleGame {
         
         if (this.isTouchDevice) {
             this.initTouchControls();
+            this.initImprovedGyroscope();
         }
-        
-        this.initGyroscope();
         
         this.gameLoop();
         this.updateDisplays();
+    }
+    
+    // NUEVO SISTEMA DE GIROSCOPIO MEJORADO
+    initImprovedGyroscope() {
+        if (window.DeviceOrientationEvent) {
+            const handleOrientation = (event) => {
+                // Solo procesar si tenemos permisos y está habilitado
+                if (!this.gyroEnabled) return;
+                
+                this.gyroGamma = event.gamma; // Inclinación izquierda-derecha [-90, 90]
+                this.gyroBeta = event.beta;   // Inclinación adelante-atrás [-180, 180]
+                this.gyroAlpha = event.alpha; // Orientación [0, 360]
+                
+                // Calibrar automáticamente la primera vez
+                if (!this.isCalibrated && this.gyroGamma !== null && this.gyroBeta !== null) {
+                    this.calibratedGamma = this.gyroGamma;
+                    this.calibratedBeta = this.gyroBeta;
+                    this.isCalibrated = true;
+                    
+                    console.log('Gyroscopio calibrado:', {
+                        gamma: this.calibratedGamma,
+                        beta: this.calibratedBeta
+                    });
+                }
+            };
+            
+            window.addEventListener('deviceorientation', handleOrientation);
+            
+            // Solicitar permisos para iOS 13+
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                const startButton = document.querySelector('.start-button');
+                const originalOnClick = startButton ? startButton.onclick : null;
+                
+                if (startButton) {
+                    startButton.onclick = async () => {
+                        try {
+                            const permission = await DeviceOrientationEvent.requestPermission();
+                            if (permission === 'granted') {
+                                this.gyroEnabled = true;
+                                console.log('Permisos de giroscopio concedidos');
+                            }
+                        } catch (error) {
+                            console.warn('Permisos de giroscopio denegados:', error);
+                            this.gyroEnabled = false;
+                        }
+                        
+                        if (typeof originalOnClick === 'function') {
+                            originalOnClick();
+                        }
+                    };
+                }
+            } else {
+                // Para Android y otros navegadores que no requieren permisos
+                this.gyroEnabled = true;
+            }
+        } else {
+            console.warn('El dispositivo no soporta DeviceOrientationEvent');
+            this.gyroEnabled = false;
+        }
     }
     
     initTouchControls() {
@@ -300,57 +375,59 @@ class CubeBattleGame {
         }
     }
 
-    initGyroscope() {
-        // Usamos devicemotion (Acelerómetro) porque no sufre de saltos de ángulos
-        if (window.DeviceMotionEvent) {
-            window.addEventListener('devicemotion', (e) => {
-                // accelerationIncludingGravity detecta hacia dónde tira la gravedad
-                const acc = e.accelerationIncludingGravity;
-                if (!acc) return;
-
-                // Suavizado simple para evitar temblores (filtro de paso bajo)
-                // En modo PAISAJE (Landscape):
-                // El eje Y del dispositivo es la inclinación Izquierda/Derecha
-                // El eje X del dispositivo es la inclinación Arriba/Abajo
-                const currentX = acc.x || 0;
-                const currentY = acc.y || 0;
-
-                this.accelX = currentX;
-                this.accelY = currentY;
-
-                // Calibrar solo la primera vez que recibimos datos válidos
-                if (!this.isCalibrated && (currentX !== 0 || currentY !== 0)) {
-                    this.baseAccelX = currentX;
-                    this.baseAccelY = currentY;
-                    this.isCalibrated = true;
-                }
-                
-                this.gyroEnabled = true;
-            });
+    // NUEVO MÉTODO MEJORADO DE MOVIMIENTO CON GIROSCOPIO
+    moveWithImprovedGyroscope() {
+        if (!this.gyroEnabled || !this.isCalibrated) return;
+        
+        // Aplicar filtros para suavizar el movimiento
+        const filteredGamma = this.gammaFilter.add(this.gyroGamma);
+        const filteredBeta = this.betaFilter.add(this.gyroBeta);
+        
+        // Calcular diferencias desde la posición calibrada
+        const diffGamma = filteredGamma - this.calibratedGamma;
+        const diffBeta = filteredBeta - this.calibratedBeta;
+        
+        // Configuración de sensibilidad
+        const maxTilt = 45; // Grados máximos de inclinación para velocidad máxima
+        const speedMultiplier = 0.8; // Reducir velocidad general del giroscopio
+        
+        // Calcular velocidades basadas en la inclinación
+        let targetVelX = 0;
+        let targetVelY = 0;
+        
+        // MOVIMIENTO HORIZONTAL (Gamma - inclinación izquierda/derecha)
+        if (Math.abs(diffGamma) > this.deadZone) {
+            // Mapear inclinación a velocidad [-maxSpeed, maxSpeed]
+            const tiltPercent = Math.min(Math.abs(diffGamma) / maxTilt, 1);
+            const direction = diffGamma > 0 ? 1 : -1;
+            targetVelX = direction * this.speed * tiltPercent * speedMultiplier;
             
-            // Permisos para iOS 13+ (requiere gesto de usuario, igual que antes pero para Motion)
-            if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                const startButton = document.querySelector('.start-button');
-                // Guardamos la función original si existe
-                const originalOnClick = startButton ? startButton.onclick : null;
-                
-                if (startButton) {
-                    startButton.onclick = () => {
-                        DeviceMotionEvent.requestPermission()
-                            .then(permissionState => {
-                                if (permissionState === 'granted') {
-                                    this.gyroEnabled = true;
-                                }
-                                // Ejecutar la función original de startButton (startGame)
-                                if (typeof originalOnClick === 'function') {
-                                    originalOnClick();
-                                }
-                            })
-                            .catch(console.error);
-                    };
-                }
-            }
+            // Inclinación visual del cubo
+            this.tilt = direction * Math.min(10, tiltPercent * 15);
+        } else {
+            this.tilt = 0;
         }
+        
+        // MOVIMIENTO VERTICAL (Beta - inclinación adelante/atrás)
+        if (Math.abs(diffBeta) > this.deadZone) {
+            const tiltPercent = Math.min(Math.abs(diffBeta) / maxTilt, 1);
+            const direction = diffBeta > 0 ? 1 : -1;
+            targetVelY = direction * this.speed * tiltPercent * speedMultiplier;
+        }
+        
+        // Suavizar la transición de velocidades
+        const acceleration = 0.3;
+        this.velocity.x = this.lerp(this.velocity.x, targetVelX, acceleration);
+        this.velocity.y = this.lerp(this.velocity.y, targetVelY, acceleration);
+        
+        // Si la velocidad es muy baja, establecer a cero
+        if (Math.abs(this.velocity.x) < 0.1) this.velocity.x = 0;
+        if (Math.abs(this.velocity.y) < 0.1) this.velocity.y = 0;
+    }
+    
+    // MÉTODO AUXILIAR PARA INTERPOLACIÓN SUAVE
+    lerp(start, end, factor) {
+        return start * (1 - factor) + end * factor;
     }
     
     handleKeyDown(event) {
@@ -371,6 +448,46 @@ class CubeBattleGame {
             }
             this.keys[event.key] = false;
         }
+    }
+    
+    // ACTUALIZAR EL MÉTODO moveCube
+    moveCube() {
+        this.velocity.x = 0;
+        this.velocity.y = 0;
+        this.tilt = 0;
+
+        // PRIORIDAD: Controles de teclado
+        let keyboardActive = false;
+        
+        if (this.keys.a || this.keys.ArrowLeft) {
+            this.velocity.x = -this.speed;
+            this.tilt = -3;
+            keyboardActive = true;
+        } else if (this.keys.d || this.keys.ArrowRight) {
+            this.velocity.x = this.speed;
+            this.tilt = 3;
+            keyboardActive = true;
+        }
+        
+        if (this.keys.w || this.keys.ArrowUp) {
+            this.velocity.y = -this.speed;
+            keyboardActive = true;
+        } else if (this.keys.s || this.keys.ArrowDown) {
+            this.velocity.y = this.speed;
+            keyboardActive = true;
+        }
+
+        // SI NO HAY TECLADO ACTIVO, USAR GIROSCOPIO
+        if (!keyboardActive && this.gyroEnabled && this.isTouchDevice) {
+            this.moveWithImprovedGyroscope();
+        }
+
+        // Aplicar movimiento
+        const newX = this.position.x + this.velocity.x;
+        const newY = this.position.y + this.velocity.y;
+        
+        this.position.x = Math.max(0, Math.min(newX, window.innerWidth - this.cubeSize));
+        this.position.y = Math.max(0, Math.min(newY, window.innerHeight - this.cubeSize));
     }
     
     startCharging() {
@@ -611,116 +728,6 @@ class CubeBattleGame {
         this.position.y = Math.max(0, Math.min(this.position.y, window.innerHeight - this.cubeSize));
     }
     
-    moveCube() {
-        this.velocity.x = 0;
-        this.velocity.y = 0;
-        this.tilt = 0;
-
-        let useGyro = false;
-
-        if (this.gyroEnabled && this.isTouchDevice) {
-            this.moveWithGyroscope(); 
-            if (Math.abs(this.velocity.x) > 0 || Math.abs(this.velocity.y) > 0) {
-                useGyro = true;
-            }
-        }
-
-        let keyboardActive = false;
-        
-        if (this.keys.a || this.keys.ArrowLeft) {
-            this.velocity.x = -this.speed;
-            this.tilt = -3;
-            keyboardActive = true;
-        } else if (this.keys.d || this.keys.ArrowRight) {
-            this.velocity.x = this.speed;
-            this.tilt = 3;
-            keyboardActive = true;
-        }
-        
-        if (this.keys.w || this.keys.ArrowUp) {
-            this.velocity.y = -this.speed;
-            keyboardActive = true;
-        } else if (this.keys.s || this.keys.ArrowDown) {
-            this.velocity.y = this.speed;
-            keyboardActive = true;
-        }
-
-        const newX = this.position.x + this.velocity.x;
-        const newY = this.position.y + this.velocity.y;
-        
-        this.position.x = Math.max(0, Math.min(newX, window.innerWidth - this.cubeSize));
-        this.position.y = Math.max(0, Math.min(newY, window.innerHeight - this.cubeSize));
-    }
-
-    moveWithGyroscope() {
-        if (!this.isCalibrated) return;
-        
-        // Reiniciar velocidad base
-        this.velocity.x = 0;
-        this.velocity.y = 0;
-
-        // Configuración de sensibilidad
-        const maxSpeed = 15;
-        const reducedSpeed = this.speed * 0.75; 
-        const sensitivity = 5.0; // Cuánto hay que inclinar para máxima velocidad (aprox 45 grados)
-
-        // EN MODO PAISAJE (Landscape):
-        // - Inclinar izquierda/derecha afecta al Eje Y del dispositivo (accelY).
-        // - Inclinar adelante/atrás afecta al Eje X del dispositivo (accelX).
-        
-        // Calcular diferencia desde la posición calibrada
-        // Nota: Los signos (+/-) pueden variar según navegador/dispositivo,
-        // ajusta estos signos menos (-) si los controles están invertidos.
-        let diffX = this.accelY - this.baseAccelY; // Controla movimiento Horizontal en pantalla
-        let diffY = this.accelX - this.baseAccelX; // Controla movimiento Vertical en pantalla
-
-        // Movimiento Horizontal
-        // Limitamos la diferencia para que no exceda la sensibilidad
-        const inputX = Math.max(-sensitivity, Math.min(sensitivity, diffX));
-        // Mapeamos la entrada (-5 a 5) a la velocidad (-max a max)
-        // Multiplicamos por -1 si va al revés
-        this.velocity.x = -(inputX / sensitivity) * reducedSpeed;
-        
-        // Efecto de inclinación visual del cubo
-        this.tilt = inputX > 0.5 ? -3 : (inputX < -0.5 ? 3 : 0);
-
-        // Movimiento Vertical
-        const inputY = Math.max(-sensitivity, Math.min(sensitivity, diffY));
-        // Multiplicamos por -1 si va al revés (generalmente X positivo es inclinar hacia ti)
-        this.velocity.y = -(inputY / sensitivity) * reducedSpeed; 
-        
-        // Límites finales de seguridad
-        this.velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.x));
-        this.velocity.y = Math.max(-maxSpeed, Math.min(maxSpeed, this.velocity.y));
-
-        // Override con teclado
-        if (this.keys.a || this.keys.ArrowLeft) {
-            this.velocity.x = -this.speed;
-            this.tilt = -3;
-        } else if (this.keys.d || this.keys.ArrowRight) {
-            this.velocity.x = this.speed;
-            this.tilt = 3;
-        }
-
-        if (this.keys.w || this.keys.ArrowUp) {
-            this.velocity.y = -this.speed;
-        } else if (this.keys.s || this.keys.ArrowDown) {
-            this.velocity.y = this.speed;
-        }
-    }
-
-    getShortestAngleDiff(angle1, angle2) {
-        let diff = angle1 - angle2;
-
-        if (diff > 180) {
-            diff -= 360;
-        } else if (diff < -180) {
-            diff += 360;
-        }
-        
-        return diff;
-    }
-    
     rechargeAmmo() {
         const currentTime = Date.now();
         if (currentTime - this.lastAmmoRecharge >= this.ammoRechargeRate) {
@@ -859,6 +866,25 @@ class CubeBattleGame {
         
         requestAnimationFrame(() => this.gameLoop());
     }
+    
+    // MÉTODO DE RECALIBRACIÓN
+    recalibrateGyro() {
+        if (this.gyroGamma !== null && this.gyroBeta !== null) {
+            this.calibratedGamma = this.gyroGamma;
+            this.calibratedBeta = this.gyroBeta;
+            this.gammaFilter.reset();
+            this.betaFilter.reset();
+            
+            // Efecto visual de confirmación
+            const cube = document.getElementById('cube');
+            cube.style.animation = 'calibrationPulse 0.5s ease';
+            setTimeout(() => {
+                cube.style.animation = '';
+            }, 500);
+            
+            console.log('Giroscopio recalibrado');
+        }
+    }
 }
 
 class FullscreenManager {
@@ -970,6 +996,79 @@ class RotationManager {
     }
 }
 
+// FUNCIÓN PARA AGREGAR BOTÓN DE RECALIBRACIÓN
+function addRecalibrateButton() {
+    const hud = document.querySelector('.hud');
+    const recalibrateBtn = document.createElement('button');
+    recalibrateBtn.id = 'recalibrateBtn';
+    recalibrateBtn.className = 'recalibrate-btn';
+    recalibrateBtn.innerHTML = '↻';
+    recalibrateBtn.title = 'Recalibrar Giroscopio';
+    
+    recalibrateBtn.addEventListener('click', () => {
+        if (window.cubeBattleGameInstance) {
+            window.cubeBattleGameInstance.recalibrateGyro();
+        }
+    });
+    
+    // Agregar al HUD
+    const fullscreenContainer = document.querySelector('.fullscreen-button-container');
+    if (fullscreenContainer) {
+        fullscreenContainer.parentNode.insertBefore(recalibrateBtn, fullscreenContainer);
+    }
+}
+
+// INYECTAR ESTILOS PARA EL BOTÓN DE RECALIBRACIÓN
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+.recalibrate-btn {
+    background: rgba(0, 255, 65, 0.2);
+    border: 0.2vh solid #00ff41;
+    color: #00ff41;
+    width: 3vw;
+    height: 3vw;
+    min-width: 30px;
+    min-height: 30px;
+    border-radius: 0.5vw;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5vh;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 1vh rgba(0, 255, 65, 0.3);
+    margin-right: 1vw;
+}
+
+.recalibrate-btn:hover {
+    background: rgba(0, 255, 65, 0.4);
+    box-shadow: 0 0 2vh #00ff41;
+    transform: scale(1.1) rotate(90deg);
+}
+
+.recalibrate-btn:active {
+    transform: scale(0.95) rotate(180deg);
+}
+
+@keyframes calibrationPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+    .recalibrate-btn {
+        width: 6vw;
+        height: 6vw;
+        min-width: 40px;
+        min-height: 40px;
+        font-size: 2vh;
+    }
+}
+`;
+document.head.appendChild(styleSheet);
+
+// INICIALIZACIÓN
 document.addEventListener('DOMContentLoaded', function() {
     const fullscreenManager = new FullscreenManager();
     new RotationManager();
@@ -986,6 +1085,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
 });
 
+// PREVENIR ZOOM Y GESTOS NO DESEADOS
 document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=')) {
