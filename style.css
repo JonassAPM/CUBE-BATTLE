@@ -1336,7 +1336,7 @@ html, body {
     bottom: 10vh;
     left: 3vw;
     z-index: 50;
-    display: none;
+    display: none; /* Oculto por defecto */
 }
 
 .joystick-base {
@@ -1439,6 +1439,16 @@ html, body {
 @keyframes touchPulse {
     0% { transform: scale(1); opacity: 0.3; }
     100% { transform: scale(1.1); opacity: 0.7; }
+}
+
+.mobile-controls-active .joystick-container,
+.mobile-controls-active .touch-controls {
+    display: block !important;
+}
+
+.pc-controls-active .joystick-container,
+.pc-controls-active .touch-controls {
+    display: none !important;
 }
 
 .mobile-controls-visible .joystick-container,

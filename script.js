@@ -98,24 +98,23 @@ function startGame() {
     controlsScreen.classList.add('hidden');
     gameContainer.classList.remove('hidden');
     
+    // LIMPIAR CLASES ANTERIORES PRIMERO
+    gameContainer.classList.remove('mobile-controls-active', 'pc-controls-active');
+    
     // FORZAR CONTROLES MÓVILES SI SE SELECCIONÓ MÓVIL
     if (controlMode === 'mobile') {
-        gameContainer.classList.add('mobile-controls-visible');
-        gameContainer.classList.remove('pc-controls-visible');
+        gameContainer.classList.add('mobile-controls-active');
         console.log('✅ Controles móviles ACTIVADOS - Joystick visible');
     } else if (controlMode === 'pc') {
-        gameContainer.classList.add('pc-controls-visible');
-        gameContainer.classList.remove('mobile-controls-visible');
+        gameContainer.classList.add('pc-controls-active');
         console.log('🎮 Controles PC activados');
     } else {
         // Auto-detección
         if (isMobileDevice) {
-            gameContainer.classList.add('mobile-controls-visible');
-            gameContainer.classList.remove('pc-controls-visible');
+            gameContainer.classList.add('mobile-controls-active');
             console.log('✅ Controles móviles (auto) ACTIVADOS');
         } else {
-            gameContainer.classList.add('pc-controls-visible');
-            gameContainer.classList.remove('mobile-controls-visible');
+            gameContainer.classList.add('pc-controls-active');
             console.log('🎮 Controles PC (auto) activados');
         }
     }
@@ -124,6 +123,9 @@ function startGame() {
     if (window.rotationManager) {
         window.rotationManager.setGameStarted();
     }
+    
+    // INICIALIZAR EL JUEGO
+    new CubeBattleGame();
     
     // DEBUG: Verificar si los controles son visibles
     setTimeout(() => {
@@ -137,8 +139,6 @@ function startGame() {
             gameContainerClasses: gameContainer.className
         });
     }, 100);
-    
-    new CubeBattleGame();
 }
 
 // CLASE JOYSTICK VIRTUAL
@@ -306,7 +306,7 @@ class CubeBattleGame {
 
         // JOYSTICK
         this.joystick = null;
-        this.usingMobileControls = controlMode === 'mobile' || (controlMode === 'auto' && isMobileDevice);
+        this.usingMobileControls = this.gameContainer.classList.contains('mobile-controls-active');
 
         this.keys = {
             w: false,
@@ -398,13 +398,25 @@ class CubeBattleGame {
         const handle = document.getElementById('joystickHandle');
         const base = document.querySelector('.joystick-base');
         
-        console.log('🔧 Buscando elementos del joystick:', { handle: !!handle, base: !!base });
+        console.log('🔧 Buscando elementos del joystick:', { 
+            handle: !!handle, 
+            base: !!base,
+            gameContainerClass: this.gameContainer.className 
+        });
         
-        if (handle && base) {
+        // VERIFICAR SI DEBERÍA MOSTRARSE EL JOYSTICK
+        const shouldShowJoystick = this.gameContainer.classList.contains('mobile-controls-active');
+        console.log('📱 ¿Mostrar joystick?', shouldShowJoystick);
+        
+        if (handle && base && shouldShowJoystick) {
             this.joystick = new VirtualJoystick(handle, base);
             console.log('✅ Joystick virtual creado exitosamente');
         } else {
-            console.error('❌ No se pudo crear el joystick: elementos no encontrados');
+            console.log('❌ Joystick no creado:', {
+                handleExists: !!handle,
+                baseExists: !!base,
+                mobileActive: shouldShowJoystick
+            });
         }
     }
     
