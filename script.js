@@ -94,192 +94,133 @@ function showConfigScreen() {
     configScreen.classList.remove('hidden');
 }
 
-// FUNCIÓN DE DEBUG PARA VERIFICAR ELEMENTOS
-function debugElements() {
-    console.log('🔍 DEBUG ELEMENTOS:');
-    console.log('- joystickContainer:', document.getElementById('joystickContainer'));
-    console.log('- joystickHandle:', document.getElementById('joystickHandle'));
-    console.log('- touchControls:', document.getElementById('touchControls'));
-    console.log('- gameContainer:', document.getElementById('gameContainer'));
-    console.log('- Control mode:', controlMode);
-    
-    const joystick = document.getElementById('joystickContainer');
-    if (joystick) {
-        console.log('- Joystick computed display:', window.getComputedStyle(joystick).display);
-        console.log('- Joystick classes:', joystick.className);
-    }
-}
-
-// Ejecutar debug después de iniciar el juego
-setTimeout(debugElements, 1000);
-
-function startGame() {
-    const controlsScreen = document.getElementById('controlsScreen');
-    const gameContainer = document.getElementById('gameContainer');
-    
-    controlsScreen.classList.add('hidden');
-    gameContainer.classList.remove('hidden');
-    
-    console.log('🎮 Iniciando juego con modo:', controlMode);
-    
-    // LIMPIAR CLASES ANTERIORES
-    gameContainer.classList.remove('show-joystick');
-    
-    // FORZAR JOYSTICK SI ES MÓVIL
-    if (controlMode === 'mobile') {
-        console.log('📱 ACTIVANDO JOYSTICK MANUALMENTE');
-        gameContainer.classList.add('show-joystick');
-        
-        // Forzar visualización inmediata
-        const joystick = document.getElementById('joystickContainer');
-        console.log('🔍 Estado del joystick al iniciar juego:', {
-            joystickExists: !!joystick,
-            joystickDisplay: joystick ? window.getComputedStyle(joystick).display : 'no existe',
-            controlMode: controlMode
-        });
-
-        this.applySelectedColor();
-        this.updatePlayerName();
-        this.init()
-        const touchControls = document.getElementById('touchControls');
-        
-        if (joystick) {
-            joystick.style.display = 'block';
-            joystick.style.visibility = 'visible';
-            joystick.style.opacity = '1';
-            console.log('✅ Joystick forzado a visible');
-        }
-        
-        if (touchControls) {
-            touchControls.style.display = 'block';
-            touchControls.style.visibility = 'visible';
-            touchControls.style.opacity = '1';
-            console.log('✅ Touch controls forzados a visible');
-        }
-    }
-    
-    // INDICAR QUE EL JUEGO INICIÓ
-    if (window.rotationManager) {
-        window.rotationManager.setGameStarted();
-    }
-    
-    // INICIALIZAR EL JUEGO
-    new CubeBattleGame();
-}
-
-// CLASE JOYSTICK VIRTUAL
+// CLASE JOYSTICK VIRTUAL COMPLETAMENTE CORREGIDA
 class VirtualJoystick {
-    constructor(handleElement, baseElement) {
+    constructor(handleElement, baseElement, onDirectionChange) {
         this.handle = handleElement;
         this.base = baseElement;
+        this.onDirectionChange = onDirectionChange;
         this.active = false;
         this.direction = { x: 0, y: 0 };
         this.baseRect = null;
         this.maxDistance = 0;
+        this.currentTouchId = null;
         
         this.init();
     }
     
     init() {
-        if (!this.handle || !this.base) return;
-        
-        this.updateBaseRect();
+        if (!this.handle || !this.base) {
+            console.error('❌ Elementos del joystick no encontrados');
+            return;
+        }
+
+        console.log('🎮 Inicializando joystick...');
         
         // Eventos táctiles
-        this.handle.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.activate();
-        });
-        
-        this.base.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.activate();
-            this.update(e.touches[0]);
-        });
-        
-        document.addEventListener('touchmove', (e) => {
-            if (this.active) {
-                e.preventDefault();
-                this.update(e.touches[0]);
-            }
-        });
-        
-        document.addEventListener('touchend', (e) => {
-            if (this.active) {
-                e.preventDefault();
-                this.deactivate();
-            }
-        });
-        
-        document.addEventListener('touchcancel', (e) => {
-            if (this.active) {
-                e.preventDefault();
-                this.deactivate();
-            }
-        });
+        this.base.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+        document.addEventListener('touchmove', (e) => this.handleTouchMove(e));
+        document.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+        document.addEventListener('touchcancel', (e) => this.handleTouchEnd(e));
         
         // Eventos de mouse para desarrollo
-        this.handle.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            this.activate();
-        });
-        
-        this.base.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            this.activate();
-            this.update(e);
-        });
-        
-        document.addEventListener('mousemove', (e) => {
-            if (this.active) {
-                e.preventDefault();
-                this.update(e);
-            }
-        });
-        
-        document.addEventListener('mouseup', (e) => {
-            if (this.active) {
-                e.preventDefault();
-                this.deactivate();
-            }
-        });
+        this.base.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
 
-        // Actualizar el rectángulo base en redimensionamiento
-        window.addEventListener('resize', () => {
-            this.updateBaseRect();
-        });
+        // Actualizar dimensiones
+        this.updateDimensions();
+        window.addEventListener('resize', () => this.updateDimensions());
+        
+        console.log('✅ Joystick inicializado');
     }
 
-    updateBaseRect() {
+    updateDimensions() {
         this.baseRect = this.base.getBoundingClientRect();
-        this.maxDistance = this.baseRect.width / 3;
+        this.maxDistance = this.baseRect.width * 0.4;
+        console.log('📐 Dimensiones actualizadas:', this.baseRect, 'Max distance:', this.maxDistance);
     }
-    
-    activate() {
+
+    handleTouchStart(e) {
+        e.preventDefault();
+        if (this.active) return;
+        
+        const touch = e.touches[0];
+        this.currentTouchId = touch.identifier;
+        this.activate(touch.clientX, touch.clientY);
+    }
+
+    handleTouchMove(e) {
+        if (!this.active) return;
+        
+        e.preventDefault();
+        const touch = Array.from(e.touches).find(t => t.identifier === this.currentTouchId);
+        if (touch) {
+            this.update(touch.clientX, touch.clientY);
+        }
+    }
+
+    handleTouchEnd(e) {
+        if (!this.active) return;
+        
+        e.preventDefault();
+        const touch = Array.from(e.changedTouches).find(t => t.identifier === this.currentTouchId);
+        if (touch) {
+            this.deactivate();
+        }
+    }
+
+    handleMouseDown(e) {
+        e.preventDefault();
+        if (this.active) return;
+        
+        this.activate(e.clientX, e.clientY);
+    }
+
+    handleMouseMove(e) {
+        if (!this.active) return;
+        
+        e.preventDefault();
+        this.update(e.clientX, e.clientY);
+    }
+
+    handleMouseUp(e) {
+        if (!this.active) return;
+        
+        e.preventDefault();
+        this.deactivate();
+    }
+
+    activate(clientX, clientY) {
         this.active = true;
         this.handle.classList.add('active');
-        this.updateBaseRect(); // Actualizar posición al activar
+        this.updateDimensions();
+        this.update(clientX, clientY);
+        console.log('🎯 Joystick activado');
     }
-    
+
     deactivate() {
         this.active = false;
-        this.direction.x = 0;
-        this.direction.y = 0;
+        this.direction = { x: 0, y: 0 };
+        this.currentTouchId = null;
         this.handle.style.transform = 'translate(0, 0)';
         this.handle.classList.remove('active');
+        
+        if (this.onDirectionChange) {
+            this.onDirectionChange(this.direction);
+        }
+        
+        console.log('🎯 Joystick desactivado');
     }
-    
-    update(input) {
+
+    update(clientX, clientY) {
         if (!this.active || !this.baseRect) return;
-        
-        const currentX = input.clientX;
-        const currentY = input.clientY;
-        
+
         const centerX = this.baseRect.left + this.baseRect.width / 2;
         const centerY = this.baseRect.top + this.baseRect.height / 2;
         
-        const deltaX = currentX - centerX;
-        const deltaY = currentY - centerY;
+        const deltaX = clientX - centerX;
+        const deltaY = clientY - centerY;
         
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         const limitedDistance = Math.min(distance, this.maxDistance);
@@ -288,9 +229,19 @@ class VirtualJoystick {
         const limitedX = Math.cos(angle) * limitedDistance;
         const limitedY = Math.sin(angle) * limitedDistance;
         
+        // Actualizar posición visual del handle
         this.handle.style.transform = `translate(${limitedX}px, ${limitedY}px)`;
+        
+        // Calcular dirección normalizada (-1 a 1)
         this.direction.x = limitedX / this.maxDistance;
         this.direction.y = limitedY / this.maxDistance;
+        
+        console.log('🎮 Joystick direction:', this.direction);
+        
+        // Llamar callback si existe
+        if (this.onDirectionChange) {
+            this.onDirectionChange(this.direction);
+        }
     }
     
     getDirection() {
@@ -353,6 +304,7 @@ class CubeBattleGame {
 
         // JOYSTICK
         this.joystick = null;
+        this.joystickDirection = { x: 0, y: 0 };
         this.usingMobileControls = controlMode === 'mobile';
 
         this.keys = {
@@ -377,6 +329,74 @@ class CubeBattleGame {
         this.applySelectedColor();
         this.updatePlayerName();
         this.init();
+    }
+
+    startCharging() {
+        this.isCharging = true;
+        this.chargeStartTime = Date.now();
+        this.chargeBullets = 1;
+        
+        this.cube.classList.add('vibrate-1');
+        document.querySelector('.charge-effect').classList.add('active');
+        
+        this.chargingBullet.classList.remove('hidden');
+        this.updateChargingBullet();
+        
+        // Actualizar estado visual del botón de disparo
+        const shootButton = document.querySelector('.touch-shoot-button');
+        if (shootButton) {
+            shootButton.classList.add('charging');
+        }
+    }
+
+    stopCharging() {
+        this.isCharging = false;
+        this.chargeLevel = 0;
+        this.chargeBullets = 0;
+        
+        this.cube.classList.remove('vibrate-1', 'vibrate-2', 'vibrate-3', 'vibrate-4');
+        document.querySelector('.charge-effect').classList.remove('active');
+        this.chargingBullet.classList.add('hidden');
+        this.chargingBullet.classList.remove('spin-fast', 'spin-very-fast', 'spin-extreme');
+        
+        // Quitar estado visual del botón de disparo
+        const shootButton = document.querySelector('.touch-shoot-button');
+        if (shootButton) {
+            shootButton.classList.remove('charging');
+        }
+    }
+
+    updateCharging() {
+        if (!this.isCharging) return;
+        
+        const currentTime = Date.now();
+        const chargeTime = currentTime - this.chargeStartTime;
+        
+        this.chargeLevel = Math.min(100, (chargeTime / this.maxChargeTime) * 100);
+        
+        this.chargeBullets = Math.min(10, Math.max(1, Math.floor(this.chargeLevel / 10) + 1));
+        
+        this.updateVibration();
+        this.updateChargingBullet();
+        
+        // Actualizar indicador de carga en el botón
+        const chargeIndicator = document.querySelector('.shoot-charge-indicator');
+        if (chargeIndicator) {
+            const degrees = (this.chargeLevel / 100) * 360;
+            chargeIndicator.style.background = `conic-gradient(
+                from 0deg,
+                #ffff00 0%,
+                #ff00ff ${degrees * 0.25}%,
+                #ff0000 ${degrees * 0.5}%,
+                #ffff00 ${degrees * 0.75}%,
+                #ff00ff 100%
+            )`;
+        }
+        
+        const bulletsToConsume = this.chargeBullets;
+        if (bulletsToConsume > this.currentAmmo) {
+            this.chargeBullets = this.currentAmmo;
+        }
     }
     
     updatePlayerName() {
@@ -424,7 +444,7 @@ class CubeBattleGame {
         document.addEventListener('keyup', (e) => this.handleKeyUp(e));
         window.addEventListener('resize', () => this.handleResize());
         
-        // INICIALIZAR JOYSTICK SI ESTAMOS EN MODO MÓVIL
+        // INICIALIZAR JOYSTICK SI ESTAMOS EN MÓVIL
         if (this.usingMobileControls) {
             console.log('📱 Inicializando joystick para móvil...');
             this.initJoystick();
@@ -446,11 +466,21 @@ class CubeBattleGame {
         
         console.log('🔧 Buscando elementos del joystick:', { 
             handle: !!handle, 
-            base: !!base 
+            base: !!base,
+            handleElement: handle,
+            baseElement: base
         });
         
         if (handle && base) {
-            this.joystick = new VirtualJoystick(handle, base);
+            // Crear joystick con callback para cambios de dirección
+            this.joystick = new VirtualJoystick(
+                handle, 
+                base, 
+                (direction) => {
+                    this.joystickDirection = direction;
+                    console.log('🔄 Callback de dirección:', direction);
+                }
+            );
             console.log('✅ Joystick virtual inicializado correctamente');
         } else {
             console.error('❌ No se pudo inicializar el joystick: elementos no encontrados');
@@ -458,93 +488,96 @@ class CubeBattleGame {
     }
     
     initTouchControls() {
-        const touchTarget = this.gameContainer; 
-        let chargeStartedOnTouch = false;
-        let touchID = null;
-
-        const handleTouchStart = (e) => {
-            e.preventDefault();
-
-            if (e.touches.length > 1 || touchID !== null) return;
-
-            touchID = e.touches[0].identifier;
-
-            if (this.touchTimeout) {
-                clearTimeout(this.touchTimeout);
-                this.touchTimeout = null;
-            }
-
-            const touchY = e.touches[0].clientY;
-            const hudHeight = 80;
-
-            if (touchY < window.innerHeight - hudHeight && this.currentAmmo > 0 && !this.isCharging) {
-                this.startCharging();
-                chargeStartedOnTouch = true;
-                this.touchStartTime = Date.now();
-                this.isTouchCharging = true;
-
-                this.touchTimeout = setTimeout(() => {
-                    this.touchTimeout = null;
-                }, 150);
-            } else {
-                chargeStartedOnTouch = false;
-            }
-        };
-
-        const handleTouchEnd = (e) => {
-            e.preventDefault();
-
-            let isChargeEnding = false;
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === touchID) {
-                    isChargeEnding = true;
-                    break;
-                }
-            }
-
-            if (!isChargeEnding) return;
-
-            this.isTouchCharging = false;
-            touchID = null;
-
-            if (this.touchTimeout) {
-                clearTimeout(this.touchTimeout);
-                this.touchTimeout = null;
-                
-                if (this.isCharging && chargeStartedOnTouch) {
-                    this.shootCharged(); 
-                }
-            } else if (this.isCharging && chargeStartedOnTouch) {
-                this.shootCharged();
-            }
-            
-            chargeStartedOnTouch = false;
-        };
-
-        touchTarget.addEventListener('touchstart', handleTouchStart);
-        touchTarget.addEventListener('touchend', handleTouchEnd);
-        touchTarget.addEventListener('touchcancel', handleTouchEnd);
-        touchTarget.addEventListener('touchmove', (e) => e.preventDefault());
-
+        // BOTÓN DE DISPARO TÁCTIL - IMPLEMENTACIÓN SIMPLIFICADA Y FUNCIONAL
         if (this.shootArea) {
-            this.shootArea.addEventListener('touchstart', (e) => {
+            console.log('🔫 Inicializando botón de disparo táctil...');
+            
+            let isShooting = false;
+            let shootStartTime = 0;
+            let shootTouchId = null;
+
+            const handleShootStart = (e) => {
+                e.preventDefault();
                 e.stopPropagation();
+                
+                if (shootTouchId !== null) return;
+                
+                const touch = e.type.includes('touch') ? e.touches[0] : e;
+                shootTouchId = touch?.identifier || 'mouse';
+                
                 if (this.currentAmmo > 0 && !this.isCharging) {
+                    isShooting = true;
+                    shootStartTime = Date.now();
                     this.startCharging();
-                    this.touchStartTime = Date.now();
-                    this.isTouchCharging = true;
+                    console.log('🔫 Disparo: Iniciando carga');
                 }
-            });
+            };
 
-            this.shootArea.addEventListener('touchend', (e) => {
+            const handleShootEnd = (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                this.isTouchCharging = false;
+                
+                if (!isShooting) return;
+                
+                // Verificar si es el mismo touch/mouse
+                let shouldProcess = false;
+                if (e.type.includes('touch')) {
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        if (e.changedTouches[i].identifier === shootTouchId) {
+                            shouldProcess = true;
+                            break;
+                        }
+                    }
+                } else {
+                    shouldProcess = true;
+                }
 
-                if (this.isCharging) {
+                if (!shouldProcess) return;
+
+                const chargeTime = Date.now() - shootStartTime;
+                
+                if (chargeTime < 200) {
+                    // Tocar/click rápido: disparo normal instantáneo
+                    console.log('🔫 Disparo rápido');
+                    this.stopCharging();
+                    if (this.currentAmmo > 0) {
+                        this.createNormalBullet();
+                        this.currentAmmo--;
+                        this.updateDisplays();
+                    }
+                } else {
+                    // Mantener presionado: disparo cargado
+                    console.log('🔫 Disparo cargado');
                     this.shootCharged();
                 }
-            });
+                
+                isShooting = false;
+                shootTouchId = null;
+            };
+
+            // Eventos táctiles
+            this.shootArea.addEventListener('touchstart', handleShootStart, { passive: false });
+            this.shootArea.addEventListener('touchend', handleShootEnd, { passive: false });
+            this.shootArea.addEventListener('touchcancel', handleShootEnd, { passive: false });
+            
+            // Eventos de mouse para desarrollo
+            this.shootArea.addEventListener('mousedown', handleShootStart);
+            this.shootArea.addEventListener('mouseup', handleShootEnd);
+            this.shootArea.addEventListener('mouseleave', handleShootEnd);
+            
+            console.log('✅ Botón de disparo inicializado');
         }
+
+        // PREVENIR EVENTOS NO DESEADOS EN EL ÁREA DE JUEGO
+        const preventDefaultTouch = (e) => {
+            if (e.target.closest('.touch-shoot-area') || 
+                e.target.closest('.joystick-container')) {
+                e.preventDefault();
+            }
+        };
+        
+        this.gameContainer.addEventListener('touchstart', preventDefaultTouch, { passive: false });
+        this.gameContainer.addEventListener('touchmove', preventDefaultTouch, { passive: false });
     }
     
     handleKeyDown(event) {
@@ -572,6 +605,7 @@ class CubeBattleGame {
         this.velocity.y = 0;
         this.tilt = 0;
         
+        // PRIORIDAD: Controles de teclado
         let keyboardActive = false;
         
         if (this.keys.a || this.keys.ArrowLeft) {
@@ -592,15 +626,17 @@ class CubeBattleGame {
             keyboardActive = true;
         }
         
+        // SI NO HAY TECLADO ACTIVO Y ESTAMOS EN MÓVIL, USAR JOYSTICK
         if (!keyboardActive && this.usingMobileControls && this.joystick && this.joystick.isActive()) {
-            const direction = this.joystick.getDirection();
+            const direction = this.joystickDirection;
+            console.log('🎮 Moviendo con joystick:', direction);
+            
             this.velocity.x = direction.x * this.speed;
             this.velocity.y = direction.y * this.speed;
             
-            console.log('🎮 Joystick direction:', direction);
-
+            // Inclinación visual basada en dirección X
             if (Math.abs(direction.x) > 0.1) {
-                this.tilt = direction.x * 10;
+                this.tilt = direction.x * 15;
             }
         }
 
@@ -609,29 +645,6 @@ class CubeBattleGame {
         
         this.position.x = Math.max(0, Math.min(newX, window.innerWidth - this.cubeSize));
         this.position.y = Math.max(0, Math.min(newY, window.innerHeight - this.cubeSize));
-    }
-
-    initJoystick() {
-        const handle = document.getElementById('joystickHandle');
-        const base = document.querySelector('.joystick-base');
-        
-        console.log('🔧 Buscando elementos del joystick:', { 
-            handle: !!handle, 
-            base: !!base 
-        });
-        
-        if (handle && base) {
-            this.joystick = new VirtualJoystick(handle, base);
-            console.log('✅ Joystick virtual inicializado correctamente');
-            
-            setTimeout(() => {
-                if (this.joystick) {
-                    this.joystick.updateBaseRect();
-                }
-            }, 100);
-        } else {
-            console.error('❌ No se pudo inicializar el joystick: elementos no encontrados');
-        }
     }
     
     startCharging() {
@@ -1138,6 +1151,51 @@ class RotationManager {
         this.gameStarted = true;
         this.hideRotationAlert();
     }
+}
+
+// FUNCIÓN START GAME CORREGIDA
+function startGame() {
+    const controlsScreen = document.getElementById('controlsScreen');
+    const gameContainer = document.getElementById('gameContainer');
+    
+    controlsScreen.classList.add('hidden');
+    gameContainer.classList.remove('hidden');
+    
+    console.log('🎮 Iniciando juego con modo:', controlMode);
+    
+    // LIMPIAR CLASES ANTERIORES
+    gameContainer.classList.remove('show-joystick');
+    
+    // FORZAR JOYSTICK SI ES MÓVIL
+    if (controlMode === 'mobile') {
+        console.log('📱 ACTIVANDO JOYSTICK MANUALMENTE');
+        gameContainer.classList.add('show-joystick');
+        
+        const joystick = document.getElementById('joystickContainer');
+        const touchControls = document.getElementById('touchControls');
+        
+        if (joystick) {
+            joystick.style.display = 'block';
+            joystick.style.visibility = 'visible';
+            joystick.style.opacity = '1';
+            console.log('✅ Joystick forzado a visible');
+        }
+        
+        if (touchControls) {
+            touchControls.style.display = 'block';
+            touchControls.style.visibility = 'visible';
+            touchControls.style.opacity = '1';
+            console.log('✅ Touch controls forzados a visible');
+        }
+    }
+    
+    // INDICAR QUE EL JUEGO INICIÓ
+    if (window.rotationManager) {
+        window.rotationManager.setGameStarted();
+    }
+    
+    // INICIALIZAR EL JUEGO Y GUARDAR INSTANCIA
+    window.gameInstance = new CubeBattleGame();
 }
 
 // INICIALIZACIÓN PRINCIPAL

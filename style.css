@@ -726,12 +726,29 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 0 2vh rgba(255, 0, 255, 0.5);
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .touch-shoot-button:active {
-    transform: scale(0.9);
+    transform: scale(0.95);
     background: radial-gradient(circle, rgba(255, 0, 255, 0.5), rgba(255, 0, 255, 0.2));
-    box-shadow: 0 0 3vh #ff00ff;
+    box-shadow: 0 0 3vh #ff00ff,
+                inset 0 0 2vh rgba(255, 0, 255, 0.3);
+}
+
+.touch-shoot-button.charging {
+    background: radial-gradient(circle, rgba(255, 255, 0, 0.5), rgba(255, 255, 0, 0.2));
+    border-color: #ffff00;
+    box-shadow: 0 0 3vh #ffff00,
+                inset 0 0 2vh rgba(255, 255, 0, 0.3);
+    animation: shootButtonPulse 0.5s infinite alternate;
+}
+
+@keyframes shootButtonPulse {
+    0% { transform: scale(0.95); }
+    100% { transform: scale(1.05); }
 }
 
 .touch-shoot-text {
@@ -740,6 +757,7 @@ body {
     text-align: center;
     text-shadow: 0 0 1vh #ff00ff;
     pointer-events: none;
+    font-weight: bold;
 }
 
 .touch-shoot-glow {
@@ -758,6 +776,44 @@ body {
 .touch-shoot-button:active .touch-shoot-glow {
     opacity: 1;
     animation: touchPulse 0.5s infinite alternate;
+}
+
+.touch-shoot-button.charging .touch-shoot-text {
+    color: #ffff00;
+    text-shadow: 0 0 1vh #ffff00;
+}
+
+.shoot-charge-indicator {
+    position: absolute;
+    top: -0.5vh;
+    left: -0.5vh;
+    right: -0.5vh;
+    bottom: -0.5vh;
+    border: 0.3vh solid transparent;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 0deg,
+        #ffff00 0%,
+        #ff00ff 25%,
+        #ff0000 50%,
+        #ffff00 75%,
+        #ff00ff 100%
+    );
+    mask: radial-gradient(circle, transparent 60%, black 61%);
+    -webkit-mask: radial-gradient(circle, transparent 60%, black 61%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.touch-shoot-button.charging .shoot-charge-indicator {
+    opacity: 1;
+    animation: rotateCharge 2s linear infinite;
+}
+
+@keyframes rotateCharge {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 @keyframes touchPulse {
