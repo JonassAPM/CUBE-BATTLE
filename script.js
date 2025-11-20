@@ -488,97 +488,67 @@ class CubeBattleGame {
     }
     
     initTouchControls() {
-        // BOTÓN DE DISPARO TÁCTIL - IMPLEMENTACIÓN SIMPLIFICADA Y FUNCIONAL
-        if (this.shootArea) {
-            console.log('🔫 Inicializando botón de disparo táctil...');
-            
-            let isShooting = false;
-            let shootStartTime = 0;
-            let shootTouchId = null;
+    if (this.shootArea) {
+        let pressTimer = null;
+        let isPressing = false;
+        const HOLD_DELAY = 200;
 
-            const handleShootStart = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                if (shootTouchId !== null) return;
-                
-                const touch = e.type.includes('touch') ? e.touches[0] : e;
-                shootTouchId = touch?.identifier || 'mouse';
-                
-                if (this.currentAmmo > 0 && !this.isCharging) {
-                    isShooting = true;
-                    shootStartTime = Date.now();
+        const handleInputStart = (e) => {
+            if (e.cancelable) e.preventDefault();
+            if (this.currentAmmo <= 0) return;
+
+            isPressing = true;
+
+            pressTimer = setTimeout(() => {
+                if (isPressing) {
                     this.startCharging();
-                    console.log('🔫 Disparo: Iniciando carga');
                 }
-            };
+            }, HOLD_DELAY);
+        };
 
-            const handleShootEnd = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                if (!isShooting) return;
-                
-                // Verificar si es el mismo touch/mouse
-                let shouldProcess = false;
-                if (e.type.includes('touch')) {
-                    for (let i = 0; i < e.changedTouches.length; i++) {
-                        if (e.changedTouches[i].identifier === shootTouchId) {
-                            shouldProcess = true;
-                            break;
-                        }
-                    }
-                } else {
-                    shouldProcess = true;
+        const handleInputEnd = (e) => {
+            if (e.cancelable) e.preventDefault();
+
+            if (!isPressing) return;
+            isPressing = false;
+
+            if (pressTimer) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+
+            if (this.isCharging) {
+                this.shootCharged();
+            } else {
+                if (this.currentAmmo > 0) {
+                    this.createNormalBullet();
+                    this.currentAmmo--;
+                    this.updateDisplays();
                 }
-
-                if (!shouldProcess) return;
-
-                const chargeTime = Date.now() - shootStartTime;
-                
-                if (chargeTime < 200) {
-                    // Tocar/click rápido: disparo normal instantáneo
-                    console.log('🔫 Disparo rápido');
-                    this.stopCharging();
-                    if (this.currentAmmo > 0) {
-                        this.createNormalBullet();
-                        this.currentAmmo--;
-                        this.updateDisplays();
-                    }
-                } else {
-                    // Mantener presionado: disparo cargado
-                    console.log('🔫 Disparo cargado');
-                    this.shootCharged();
-                }
-                
-                isShooting = false;
-                shootTouchId = null;
-            };
-
-            // Eventos táctiles
-            this.shootArea.addEventListener('touchstart', handleShootStart, { passive: false });
-            this.shootArea.addEventListener('touchend', handleShootEnd, { passive: false });
-            this.shootArea.addEventListener('touchcancel', handleShootEnd, { passive: false });
-            
-            // Eventos de mouse para desarrollo
-            this.shootArea.addEventListener('mousedown', handleShootStart);
-            this.shootArea.addEventListener('mouseup', handleShootEnd);
-            this.shootArea.addEventListener('mouseleave', handleShootEnd);
-            
-            console.log('✅ Botón de disparo inicializado');
-        }
-
-        // PREVENIR EVENTOS NO DESEADOS EN EL ÁREA DE JUEGO
-        const preventDefaultTouch = (e) => {
-            if (e.target.closest('.touch-shoot-area') || 
-                e.target.closest('.joystick-container')) {
-                e.preventDefault();
             }
         };
+
+        this.shootArea.addEventListener('touchstart', handleInputStart, { passive: false });
+        this.shootArea.addEventListener('touchend', handleInputEnd, { passive: false });
         
-        this.gameContainer.addEventListener('touchstart', preventDefaultTouch, { passive: false });
-        this.gameContainer.addEventListener('touchmove', preventDefaultTouch, { passive: false });
+        this.shootArea.addEventListener('mousedown', handleInputStart);
+        this.shootArea.addEventListener('mouseup', handleInputEnd);
+        this.shootArea.addEventListener('mouseleave', (e) => {
+            if (isPressing) handleInputEnd(e);
+        });
     }
+
+    const preventDefaultTouch = (e) => {
+        if (e.target.closest('.touch-shoot-area') || 
+            e.target.closest('.joystick-container')) {
+        } else {
+            e.preventDefault();
+        }
+    };
+    
+    this.gameContainer.addEventListener('touchstart', preventDefaultTouch, { passive: false });
+    this.gameContainer.addEventListener('touchmove', preventDefaultTouch, { passive: false });
+}
     
     handleKeyDown(event) {
         if (this.keys.hasOwnProperty(event.key)) {
