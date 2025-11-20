@@ -320,16 +320,24 @@ class CubeBattleGame {
         this.init();
     }
 
-    calculateSpeed() {
-        // 3 segundos * 60 frames por segundo = 180 frames
-        const TARGET_SECONDS = 3;
+calculateSpeed() {
+        // 3 segundos * 60 frames = 180 frames totales para cruzar la pantalla
+        const TARGET_SECONDS = 2;
         const FPS = 60; 
         const totalFrames = TARGET_SECONDS * FPS;
         
-        // La velocidad es cuántos píxeles moverse por frame
-        this.speed = window.innerWidth / totalFrames;
+        // 1. Calcular velocidad base (igual para todos)
+        let baseSpeed = window.innerWidth / totalFrames;
         
-        console.log(`⚡ Velocidad ajustada a: ${this.speed.toFixed(2)} px/frame para ancho ${window.innerWidth}px`);
+        // 2. Aplicar reductor si es móvil
+        // Si está usando controles móviles o detectamos touch, reducimos a la mitad
+        if (this.usingMobileControls || this.isTouchDevice) {
+            this.speed = baseSpeed * 0.5; // 50% de velocidad
+            console.log(`📱 Móvil detectado: Velocidad reducida a ${this.speed.toFixed(2)} (50%)`);
+        } else {
+            this.speed = baseSpeed; // 100% de velocidad en PC
+            console.log(`💻 PC detectado: Velocidad normal ${this.speed.toFixed(2)}`);
+        }
     }
 
     startCharging() {
