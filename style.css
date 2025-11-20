@@ -1236,17 +1236,31 @@ body {
     75% { transform: rotate(-90deg); }
 }
 
-/* RESPONSIVE */
 @media (max-width: 768px) and (orientation: portrait) {
-    .rotate-alert:not(.hidden) {
-        display: flex !important;
+    /* 1. ALERTA DE ROTACIÓN (Prioridad Máxima) */
+    .rotate-alert {
+        display: flex !important;      /* Obliga a mostrarse */
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 99999 !important;     /* Encima de todo, incluido el joystick */
+        background: #000 !important;   /* Fondo negro total para tapar el juego */
+        width: 100vw !important;
+        height: 100vh !important;
     }
-    
+
+    /* 2. SEGURIDAD: Ocultar controles táctiles si está vertical */
+    /* Esto evita que el joystick aparezca encima de la alerta */
+    .joystick-container,
+    .touch-controls {
+        display: none !important;
+    }
+
+    /* 3. TUS AJUSTES ANTERIORES (Los mantengo por si acaso) */
     .hud {
         height: 12vh;
         padding: 1vh 2vw;
     }
-    
+
     .fullscreen-btn {
         width: 6vw;
         height: 6vw;
