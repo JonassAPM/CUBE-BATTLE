@@ -104,69 +104,81 @@ class VirtualJoystick {
         this.direction = { x: 0, y: 0 };
         this.baseRect = null;
         this.maxDistance = 0;
-        this.currentTouchId = null;
+        this.currentTouchId = null; // Aquí guardaremos el ID único del dedo
         
         this.init();
     }
     
     init() {
-        if (!this.handle || !this.base) {
-            console.error('❌ Elementos del joystick no encontrados');
-            return;
-        }
+        if (!this.handle || !this.base) return;
 
-        console.log('🎮 Inicializando joystick...');
-        
-        // Eventos táctiles
-        this.base.addEventListener('touchstart', (e) => this.handleTouchStart(e));
-        document.addEventListener('touchmove', (e) => this.handleTouchMove(e));
-        document.addEventListener('touchend', (e) => this.handleTouchEnd(e));
-        document.addEventListener('touchcancel', (e) => this.handleTouchEnd(e));
-        
-        // Eventos de mouse para desarrollo
-        this.base.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-        document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+        // Usamos bind para no perder el contexto 'this'
+        this.boundHandleTouchStart = this.handleTouchStart.bind(this);
+        this.boundHandleTouchMove = this.handleTouchMove.bind(this);
+        this.boundHandleTouchEnd = this.handleTouchEnd.bind(this);
 
-        // Actualizar dimensiones
+        // El listener START va al contenedor (para detectar el toque inicial)
+        // NOTA: Usamos el padre (.joystick-container) si es posible para tener más área táctil
+        const container = this.base.parentElement || this.base;
+        container.addEventListener('touchstart', this.boundHandleTouchStart, { passive: false });
+        
+        // Los listeners MOVE y END van al documento (por si te sales del círculo)
+        document.addEventListener('touchmove', this.boundHandleTouchMove, { passive: false });
+        document.addEventListener('touchend', this.boundHandleTouchEnd, { passive: false });
+        document.addEventListener('touchcancel', this.boundHandleTouchEnd, { passive: false });
+        
         this.updateDimensions();
         window.addEventListener('resize', () => this.updateDimensions());
-        
-        console.log('✅ Joystick inicializado');
     }
 
     updateDimensions() {
         this.baseRect = this.base.getBoundingClientRect();
-        this.maxDistance = this.baseRect.width * 0.4;
-        console.log('📐 Dimensiones actualizadas:', this.baseRect, 'Max distance:', this.maxDistance);
+        this.maxDistance = this.baseRect.width / 2; // Radio del joystick
     }
 
     handleTouchStart(e) {
         e.preventDefault();
+        
+        // SI YA ESTÁ ACTIVO, IGNORAMOS OTROS DEDOS (Para que no salte si tocas con otro dedo cerca)
         if (this.active) return;
         
-        const touch = e.touches[0];
-        this.currentTouchId = touch.identifier;
-        this.activate(touch.clientX, touch.clientY);
+        // CORRECCIÓN CLAVE: Usamos changedTouches[0]
+        // Esto toma EL DEDO QUE ACABA DE TOCAR, no el primero de la lista (que podría ser el disparo)
+        const touch = e.changedTouches[0];
+        
+        this.currentTouchId = touch.identifier; // Guardamos SU matrícula (ID)
+        this.active = true;
+        this.handle.classList.add('active');
+        
+        this.updateDimensions();
+        this.update(touch.clientX, touch.clientY);
     }
 
     handleTouchMove(e) {
         if (!this.active) return;
         
-        e.preventDefault();
-        const touch = Array.from(e.touches).find(t => t.identifier === this.currentTouchId);
-        if (touch) {
-            this.update(touch.clientX, touch.clientY);
+        // Buscamos SI EL DEDO GUARDADO se ha movido
+        // Iteramos por los dedos que se mueven buscando NUESTRO ID
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === this.currentTouchId) {
+                e.preventDefault(); // Evitar scroll solo si es nuestro dedo
+                const touch = e.changedTouches[i];
+                this.update(touch.clientX, touch.clientY);
+                break; // Ya lo encontramos, no necesitamos mirar más
+            }
         }
     }
 
     handleTouchEnd(e) {
         if (!this.active) return;
         
-        e.preventDefault();
-        const touch = Array.from(e.changedTouches).find(t => t.identifier === this.currentTouchId);
-        if (touch) {
-            this.deactivate();
+        // Verificamos si EL DEDO QUE SE LEVANTÓ es el del joystick
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === this.currentTouchId) {
+                e.preventDefault();
+                this.deactivate();
+                break;
+            }
         }
     }
 
@@ -193,29 +205,24 @@ class VirtualJoystick {
 
     activate(clientX, clientY) {
         this.active = true;
-        this.handle.classList.add('active');
-        this.updateDimensions();
-        this.update(clientX, clientY);
-        console.log('🎯 Joystick activado');
     }
 
     deactivate() {
         this.active = false;
         this.direction = { x: 0, y: 0 };
         this.currentTouchId = null;
+        
+        // Reset visual suave
         this.handle.style.transform = 'translate(0, 0)';
         this.handle.classList.remove('active');
         
         if (this.onDirectionChange) {
             this.onDirectionChange(this.direction);
         }
-        
-        console.log('🎯 Joystick desactivado');
     }
 
     update(clientX, clientY) {
-        if (!this.active || !this.baseRect) return;
-
+        // Calcular centro
         const centerX = this.baseRect.left + this.baseRect.width / 2;
         const centerY = this.baseRect.top + this.baseRect.height / 2;
         
@@ -229,28 +236,19 @@ class VirtualJoystick {
         const limitedX = Math.cos(angle) * limitedDistance;
         const limitedY = Math.sin(angle) * limitedDistance;
         
-        // Actualizar posición visual del handle
         this.handle.style.transform = `translate(${limitedX}px, ${limitedY}px)`;
         
-        // Calcular dirección normalizada (-1 a 1)
+        // Normalizar valores entre -1 y 1
         this.direction.x = limitedX / this.maxDistance;
         this.direction.y = limitedY / this.maxDistance;
         
-        console.log('🎮 Joystick direction:', this.direction);
-        
-        // Llamar callback si existe
         if (this.onDirectionChange) {
             this.onDirectionChange(this.direction);
         }
     }
     
-    getDirection() {
-        return this.direction;
-    }
-    
-    isActive() {
-        return this.active;
-    }
+    isActive() { return this.active; }
+    getDirection() { return this.direction; }
 }
 
 // CLASE PRINCIPAL DEL JUEGO

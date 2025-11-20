@@ -617,36 +617,32 @@ body {
 /* JOYSTICK - POSICIÓN FIJA Y VISIBLE CUANDO SE ACTIVA */
 .joystick-container {
     position: absolute;
-    bottom: 10vh;
-    left: 3vw;
+    bottom: 0;
+    left: 0;
+    width: 50%;        /* Ocupa toda la mitad izquierda */
+    height: 50vh;      /* Mitad de la altura de la pantalla */
     z-index: 50;
-    display: none;
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
+    display: none;     /* Oculto por defecto */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .show-joystick .joystick-container,
 .show-joystick .touch-controls {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    display: flex !important; /* Usamos flex para centrar */
 }
 
 .joystick-base {
     width: 15vw;
     height: 15vw;
-    min-width: 80px;
-    min-height: 80px;
+    min-width: 100px;
+    min-height: 100px;
     background: radial-gradient(circle, rgba(0, 255, 65, 0.3), rgba(0, 255, 65, 0.1));
     border: 0.3vh solid #00ff41;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 2vh rgba(0, 255, 65, 0.5);
-    cursor: pointer;
-    touch-action: none;
+    position: relative; /* Importante para el handle */
+    flex-shrink: 0;     /* Evita que se aplaste */
 }
 
 .joystick-handle {
@@ -697,10 +693,15 @@ body {
 /* CONTROLES TÁCTILES */
 .touch-controls {
     position: absolute;
-    bottom: 10vh;
-    right: 3vw;
+    bottom: 0;
+    right: 0;
+    width: 50%;       /* Ocupa toda la mitad derecha */
+    height: 50vh;
     z-index: 50;
-    display: none; /* Oculto por defecto */
+    display: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .touch-shoot-area {
