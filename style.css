@@ -617,15 +617,21 @@ body {
 /* JOYSTICK - POSICIÓN FIJA Y VISIBLE CUANDO SE ACTIVA */
 .joystick-container {
     position: absolute;
-    bottom: 0;
+    bottom: 8vb;
     left: 0;
-    width: 50%;        /* Ocupa toda la mitad izquierda */
-    height: 50vh;      /* Mitad de la altura de la pantalla */
+    width: 50%;
+    height: 50vh;
     z-index: 50;
-    display: none;     /* Oculto por defecto */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    
+    /* FLEXBOX PARA POSICIONAR */
+    display: flex !important;     /* Forzamos flex siempre */
+    flex-direction: row;
+    align-items: flex-end;        /* Al fondo */
+    justify-content: flex-start;  /* A la izquierda */
+    
+    /* MÁRGENES PARA SEPARAR DE LA ESQUINA */
+    padding-left: 30px;
+    padding-bottom: 30px;
 }
 
 .show-joystick .joystick-container,
@@ -641,8 +647,12 @@ body {
     background: radial-gradient(circle, rgba(0, 255, 65, 0.3), rgba(0, 255, 65, 0.1));
     border: 0.3vh solid #00ff41;
     border-radius: 50%;
-    position: relative; /* Importante para el handle */
-    flex-shrink: 0;     /* Evita que se aplaste */
+    flex-shrink: 0;
+    
+    /* --- ESTAS 3 LÍNEAS FALTABAN PARA EL CENTRADO --- */
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
 }
 
 .joystick-handle {
@@ -653,10 +663,15 @@ body {
     background: radial-gradient(circle, #00ff41, #00cc00);
     border: 0.2vh solid #00ff41;
     border-radius: 50%;
-    transition: transform 0.1s ease;
     box-shadow: 0 0 1vh #00ff41;
     cursor: move;
     touch-action: none;
+    
+    /* --- IMPORTANTE --- */
+    /* Relative permite que empiece en el centro calculado por la base */
+    position: relative; 
+    /* Transform es lo que usará el JS para moverla desde ese centro */
+    transform: translate(0, 0);
     will-change: transform;
 }
 
@@ -670,7 +685,7 @@ body {
 @media (max-width: 768px) {
     .joystick-container,
     .touch-controls {
-        display: block !important;
+        display: flex !important; /* <--- CORRECCIÓN: FLEX */
         opacity: 1 !important;
         visibility: visible !important;
     }
@@ -693,15 +708,21 @@ body {
 /* CONTROLES TÁCTILES */
 .touch-controls {
     position: absolute;
-    bottom: 0;
+    bottom: 8vb;
     right: 0;
-    width: 50%;       /* Ocupa toda la mitad derecha */
+    width: 50%;
     height: 50vh;
     z-index: 50;
-    display: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    
+    /* FLEXBOX PARA POSICIONAR */
+    display: flex !important;     /* Forzamos flex siempre */
+    flex-direction: row;
+    align-items: flex-end;        /* Al fondo */
+    justify-content: flex-end;    /* A la derecha */
+    
+    /* MÁRGENES PARA SEPARAR DE LA ESQUINA */
+    padding-right: 30px;
+    padding-bottom: 30px;
 }
 
 .touch-shoot-area {
