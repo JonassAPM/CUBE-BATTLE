@@ -269,19 +269,13 @@ class CubeBattleGame {
         this.healthBar = document.getElementById('healthBar');
         this.healthText = document.getElementById('healthText');
         this.chargeBar = document.getElementById('chargeBar');
-        
-        this.cubeSize = 60; // Tamaño base
+
+        this.updateDimensions();
         
         this.position = {
-            x: window.innerWidth / 2 - 30,
-            y: window.innerHeight / 2 - 30
+            x: window.innerWidth / 2 - (this.cubeSize / 2),
+            y: window.innerHeight / 2 - (this.cubeSize / 2)
         };
-        
-        // CÁLCULO DE VELOCIDAD DINÁMICA
-        // Queremos cruzar el ancho en 3 segundos.
-        // Asumiendo 60 FPS: 3 segundos * 60 frames = 180 frames totales.
-        // Velocidad = Ancho Pantalla / 180.
-        this.calculateSpeed();
         
         this.tilt = 0;
         this.velocity = { x: 0, y: 0 };
@@ -320,24 +314,25 @@ class CubeBattleGame {
         this.init();
     }
 
-calculateSpeed() {
-        // 3 segundos * 60 frames = 180 frames totales para cruzar la pantalla
+// REEMPLAZA TU ANTIGUO MÉTODO calculateSpeed() POR ESTE:
+    updateDimensions() {
+        const rect = this.cube.getBoundingClientRect();
+
+        this.cubeSize = rect.width > 0 ? rect.width : window.innerWidth * 0.04;
+
         const TARGET_SECONDS = 2;
         const FPS = 60; 
         const totalFrames = TARGET_SECONDS * FPS;
         
-        // 1. Calcular velocidad base (igual para todos)
         let baseSpeed = window.innerWidth / totalFrames;
-        
-        // 2. Aplicar reductor si es móvil
-        // Si está usando controles móviles o detectamos touch, reducimos a la mitad
+
         if (this.usingMobileControls || this.isTouchDevice) {
-            this.speed = baseSpeed * 0.5; // 50% de velocidad
-            console.log(`📱 Móvil detectado: Velocidad reducida a ${this.speed.toFixed(2)} (50%)`);
+            this.speed = baseSpeed * 0.5;
         } else {
-            this.speed = baseSpeed; // 100% de velocidad en PC
-            console.log(`💻 PC detectado: Velocidad normal ${this.speed.toFixed(2)}`);
+            this.speed = baseSpeed;
         }
+
+        console.log(`📏 Ajuste Responsive: Cubo=${this.cubeSize.toFixed(1)}px, Vel=${this.speed.toFixed(2)}`);
     }
 
     startCharging() {
@@ -674,20 +669,20 @@ calculateSpeed() {
     updateChargingBullet() {
         if (!this.isCharging) return;
         
-        const baseSize = 20;
-        const extraSize = (this.chargeBullets - 1) * 8;
+        const baseSize = this.cubeSize * 0.4;
+        const extraSize = (this.chargeBullets - 1) * (this.cubeSize * 0.15);
         const bulletSize = baseSize + extraSize;
         
-        const bulletX = this.position.x + this.cubeSize / 2 - bulletSize / 2;
-        const bulletY = this.position.y - bulletSize - 5;
+        const bulletX = this.position.x + (this.cubeSize / 2) - (bulletSize / 2);
+        const bulletY = this.position.y - bulletSize - (this.cubeSize * 0.1);
         
         this.chargingBullet.style.width = bulletSize + 'px';
         this.chargingBullet.style.height = bulletSize + 'px';
         this.chargingBullet.style.left = bulletX + 'px';
         this.chargingBullet.style.top = bulletY + 'px';
+
         this.chargingBullet.style.opacity = (this.chargeLevel / 100) * 0.8 + 0.2;
         this.chargingBullet.style.borderRadius = this.getBulletRoundness() + 'px';
-        
         this.updateSpinAnimation();
     }
     
@@ -860,11 +855,10 @@ calculateSpeed() {
     }
     
     handleResize() {
+        this.updateDimensions();
+
         this.position.x = Math.max(0, Math.min(this.position.x, window.innerWidth - this.cubeSize));
         this.position.y = Math.max(0, Math.min(this.position.y, window.innerHeight - this.cubeSize));
-        
-        // Recalcular velocidad al cambiar tamaño de pantalla
-        this.calculateSpeed();
     }
     
     rechargeAmmo() {
