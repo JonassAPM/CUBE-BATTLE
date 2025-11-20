@@ -617,19 +617,19 @@ body {
 /* JOYSTICK - POSICIÓN FIJA Y VISIBLE CUANDO SE ACTIVA */
 .joystick-container {
     position: absolute;
-    bottom: 8vb;
+    bottom: -5vb;
     left: 0;
     width: 50%;
     height: 50vh;
     z-index: 50;
     
-    /* FLEXBOX PARA POSICIONAR */
-    display: flex !important;     /* Forzamos flex siempre */
-    flex-direction: row;
-    align-items: flex-end;        /* Al fondo */
-    justify-content: flex-start;  /* A la izquierda */
+    /* CAMBIO CLAVE: Oculto por defecto, sin !important aquí */
+    display: none;
     
-    /* MÁRGENES PARA SEPARAR DE LA ESQUINA */
+    /* Mantenemos tu alineación para cuando aparezca */
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: flex-start;
     padding-left: 30px;
     padding-bottom: 30px;
 }
@@ -708,19 +708,19 @@ body {
 /* CONTROLES TÁCTILES */
 .touch-controls {
     position: absolute;
-    bottom: 8vb;
-    right: 0;
+    bottom: -5vb;
+    right: -68vb;
     width: 50%;
     height: 50vh;
     z-index: 50;
     
-    /* FLEXBOX PARA POSICIONAR */
-    display: flex !important;     /* Forzamos flex siempre */
-    flex-direction: row;
-    align-items: flex-end;        /* Al fondo */
-    justify-content: flex-end;    /* A la derecha */
+    /* CAMBIO CLAVE: Oculto por defecto */
+    display: none;
     
-    /* MÁRGENES PARA SEPARAR DE LA ESQUINA */
+    /* Mantenemos tu alineación */
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: flex-end;
     padding-right: 30px;
     padding-bottom: 30px;
 }
@@ -1236,16 +1236,28 @@ body {
     75% { transform: rotate(-90deg); }
 }
 
-@media (max-width: 768px) and (orientation: portrait) {
-    /* 1. ALERTA DE ROTACIÓN (Prioridad Máxima) */
+@media screen and (orientation: portrait) {
+    
+    /* 1. FORZAR ALERTA DE ROTACIÓN */
     .rotate-alert {
-        display: flex !important;      /* Obliga a mostrarse */
+        display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
-        z-index: 99999 !important;     /* Encima de todo, incluido el joystick */
-        background: #000 !important;   /* Fondo negro total para tapar el juego */
-        width: 100vw !important;
-        height: 100vh !important;
+        z-index: 99999 !important;
+        background: #000 !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+    }
+
+    /* 2. OCULTAR TODO LO DEMÁS (Seguridad para que no se pueda jugar) */
+    .joystick-container,
+    .touch-controls,
+    .game-container,
+    .hud {
+        display: none !important;
     }
 
     /* 2. SEGURIDAD: Ocultar controles táctiles si está vertical */
