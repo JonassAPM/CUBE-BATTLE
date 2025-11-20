@@ -270,13 +270,19 @@ class CubeBattleGame {
         this.healthText = document.getElementById('healthText');
         this.chargeBar = document.getElementById('chargeBar');
         
+        this.cubeSize = 60; // Tamaño base
+        
         this.position = {
             x: window.innerWidth / 2 - 30,
             y: window.innerHeight / 2 - 30
         };
         
-        this.speed = 12;
-        this.cubeSize = 60;
+        // CÁLCULO DE VELOCIDAD DINÁMICA
+        // Queremos cruzar el ancho en 3 segundos.
+        // Asumiendo 60 FPS: 3 segundos * 60 frames = 180 frames totales.
+        // Velocidad = Ancho Pantalla / 180.
+        this.calculateSpeed();
+        
         this.tilt = 0;
         this.velocity = { x: 0, y: 0 };
         this.bullets = [];
@@ -297,38 +303,33 @@ class CubeBattleGame {
         this.currentHealth = this.maxHealth;
 
         this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        this.touchStartTime = 0;
-        this.touchTimeout = null;
-        this.isTouchCharging = false;
-        this.lastTouchTime = 0;
-
+        
         // JOYSTICK
         this.joystick = null;
         this.joystickDirection = { x: 0, y: 0 };
         this.usingMobileControls = controlMode === 'mobile';
 
         this.keys = {
-            w: false,
-            a: false,
-            s: false,
-            d: false,
-            ArrowUp: false,
-            ArrowLeft: false,
-            ArrowDown: false,
-            ArrowRight: false,
-            ' ': false,
-            Enter: false
+            w: false, a: false, s: false, d: false,
+            ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false,
+            ' ': false, Enter: false
         };
         
-        console.log('🎯 Inicializando juego:', {
-            controlMode,
-            isMobileDevice,
-            usingMobileControls: this.usingMobileControls
-        });
-
         this.applySelectedColor();
         this.updatePlayerName();
         this.init();
+    }
+
+    calculateSpeed() {
+        // 3 segundos * 60 frames por segundo = 180 frames
+        const TARGET_SECONDS = 3;
+        const FPS = 60; 
+        const totalFrames = TARGET_SECONDS * FPS;
+        
+        // La velocidad es cuántos píxeles moverse por frame
+        this.speed = window.innerWidth / totalFrames;
+        
+        console.log(`⚡ Velocidad ajustada a: ${this.speed.toFixed(2)} px/frame para ancho ${window.innerWidth}px`);
     }
 
     startCharging() {
@@ -853,6 +854,9 @@ class CubeBattleGame {
     handleResize() {
         this.position.x = Math.max(0, Math.min(this.position.x, window.innerWidth - this.cubeSize));
         this.position.y = Math.max(0, Math.min(this.position.y, window.innerHeight - this.cubeSize));
+        
+        // Recalcular velocidad al cambiar tamaño de pantalla
+        this.calculateSpeed();
     }
     
     rechargeAmmo() {
@@ -867,10 +871,13 @@ class CubeBattleGame {
     
     updateAmmoBars() {
         const ammoBars = document.querySelectorAll('.ammo-bar');
-        const fillHeight = (this.currentAmmo / this.maxAmmo) * 40;
+        
+        // Calculamos el porcentaje exacto (0 a 100)
+        const fillPercent = (this.currentAmmo / this.maxAmmo) * 100;
         
         ammoBars.forEach(bar => {
-            bar.style.background = `linear-gradient(to top, ${this.getAmmoColor()} ${fillHeight}px, transparent ${fillHeight}px)`;
+            // Usamos % en el gradiente para que se adapte a cualquier altura (vh) definida en CSS
+            bar.style.background = `linear-gradient(to top, ${this.getAmmoColor()} ${fillPercent}%, transparent ${fillPercent}%)`;
         });
     }
     
