@@ -174,8 +174,7 @@ class VirtualJoystick {
         this.base = baseElement;
         this.active = false;
         this.direction = { x: 0, y: 0 };
-        this.startX = 0;
-        this.startY = 0;
+        this.baseRect = null;
         this.maxDistance = 0;
         
         this.init();
@@ -184,13 +183,15 @@ class VirtualJoystick {
     init() {
         if (!this.handle || !this.base) return;
         
-        const baseRect = this.base.getBoundingClientRect();
-        this.startX = baseRect.left + baseRect.width / 2;
-        this.startY = baseRect.top + baseRect.height / 2;
-        this.maxDistance = baseRect.width / 3;
+        this.updateBaseRect();
         
         // Eventos táctiles
         this.handle.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.activate();
+        });
+        
+        this.base.addEventListener('touchstart', (e) => {
             e.preventDefault();
             this.activate();
             this.update(e.touches[0]);
@@ -221,6 +222,11 @@ class VirtualJoystick {
         this.handle.addEventListener('mousedown', (e) => {
             e.preventDefault();
             this.activate();
+        });
+        
+        this.base.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.activate();
             this.update(e);
         });
         
@@ -237,11 +243,22 @@ class VirtualJoystick {
                 this.deactivate();
             }
         });
+
+        // Actualizar el rectángulo base en redimensionamiento
+        window.addEventListener('resize', () => {
+            this.updateBaseRect();
+        });
+    }
+
+    updateBaseRect() {
+        this.baseRect = this.base.getBoundingClientRect();
+        this.maxDistance = this.baseRect.width / 3;
     }
     
     activate() {
         this.active = true;
         this.handle.classList.add('active');
+        this.updateBaseRect(); // Actualizar posición al activar
     }
     
     deactivate() {
@@ -252,14 +269,17 @@ class VirtualJoystick {
         this.handle.classList.remove('active');
     }
     
-    update(touch) {
-        if (!this.active) return;
+    update(input) {
+        if (!this.active || !this.baseRect) return;
         
-        const currentX = touch.clientX;
-        const currentY = touch.clientY;
+        const currentX = input.clientX;
+        const currentY = input.clientY;
         
-        const deltaX = currentX - this.startX;
-        const deltaY = currentY - this.startY;
+        const centerX = this.baseRect.left + this.baseRect.width / 2;
+        const centerY = this.baseRect.top + this.baseRect.height / 2;
+        
+        const deltaX = currentX - centerX;
+        const deltaY = currentY - centerY;
         
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         const limitedDistance = Math.min(distance, this.maxDistance);
@@ -552,7 +572,6 @@ class CubeBattleGame {
         this.velocity.y = 0;
         this.tilt = 0;
         
-        // PRIORIDAD: Controles de teclado
         let keyboardActive = false;
         
         if (this.keys.a || this.keys.ArrowLeft) {
@@ -573,13 +592,13 @@ class CubeBattleGame {
             keyboardActive = true;
         }
         
-        // SI NO HAY TECLADO ACTIVO Y ESTAMOS EN MÓVIL, USAR JOYSTICK
         if (!keyboardActive && this.usingMobileControls && this.joystick && this.joystick.isActive()) {
             const direction = this.joystick.getDirection();
             this.velocity.x = direction.x * this.speed;
             this.velocity.y = direction.y * this.speed;
             
-            // Inclinación visual basada en dirección X
+            console.log('🎮 Joystick direction:', direction);
+
             if (Math.abs(direction.x) > 0.1) {
                 this.tilt = direction.x * 10;
             }
@@ -590,6 +609,29 @@ class CubeBattleGame {
         
         this.position.x = Math.max(0, Math.min(newX, window.innerWidth - this.cubeSize));
         this.position.y = Math.max(0, Math.min(newY, window.innerHeight - this.cubeSize));
+    }
+
+    initJoystick() {
+        const handle = document.getElementById('joystickHandle');
+        const base = document.querySelector('.joystick-base');
+        
+        console.log('🔧 Buscando elementos del joystick:', { 
+            handle: !!handle, 
+            base: !!base 
+        });
+        
+        if (handle && base) {
+            this.joystick = new VirtualJoystick(handle, base);
+            console.log('✅ Joystick virtual inicializado correctamente');
+            
+            setTimeout(() => {
+                if (this.joystick) {
+                    this.joystick.updateBaseRect();
+                }
+            }, 100);
+        } else {
+            console.error('❌ No se pudo inicializar el joystick: elementos no encontrados');
+        }
     }
     
     startCharging() {

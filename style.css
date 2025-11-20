@@ -620,7 +620,10 @@ body {
     bottom: 10vh;
     left: 3vw;
     z-index: 50;
-    display: none; /* Oculto por defecto */
+    display: none;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .show-joystick .joystick-container,
@@ -642,6 +645,8 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: 0 0 2vh rgba(0, 255, 65, 0.5);
+    cursor: pointer;
+    touch-action: none;
 }
 
 .joystick-handle {
@@ -655,11 +660,38 @@ body {
     transition: transform 0.1s ease;
     box-shadow: 0 0 1vh #00ff41;
     cursor: move;
+    touch-action: none;
+    will-change: transform;
 }
 
 .joystick-handle.active {
     background: radial-gradient(circle, #ffff00, #ffcc00);
     box-shadow: 0 0 2vh #ffff00;
+    transform: scale(1.1);
+}
+
+/* MEJORAR LA DETECCIÓN TÁCTIL EN MÓVIL */
+@media (max-width: 768px) {
+    .joystick-container,
+    .touch-controls {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    
+    .joystick-base {
+        width: 20vw;
+        height: 20vw;
+        min-width: 100px;
+        min-height: 100px;
+    }
+    
+    .joystick-handle {
+        width: 8vw;
+        height: 8vw;
+        min-width: 40px;
+        min-height: 40px;
+    }
 }
 
 /* CONTROLES TÁCTILES */
